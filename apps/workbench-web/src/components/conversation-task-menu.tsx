@@ -19,9 +19,12 @@ import { ToolbarDock, type ToolbarDockAction } from "./toolbar-dock";
 import { conversationToolbarDock } from "./toolbar-dock-state";
 import "../styles/context-menu.scss";
 
+const ImSources = lazy(() => import("@opencraft/plugin-im/sources").then(module => ({default:module.ImSources})));
+
 const ConversationInformationDialog = lazy(() => import("./conversation-information-dialog"));
 
 export interface ConversationTaskMenuProps {
+  readonly im?: { fetcher: typeof fetch; openSettings(): void };
   readonly port?: TasksRequestPort;
   readonly schedules?: ConversationSchedulesRequestPort;
   readonly scope: string;
@@ -133,6 +136,7 @@ export function ConversationTaskMenu(props: Props) {
   const actionTrigger = useRef<HTMLElement | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [imOpen, setImOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [schedulesOpen, setSchedulesOpen] = useState(false);
   const [name, setName] = useState("");
@@ -185,6 +189,12 @@ export function ConversationTaskMenu(props: Props) {
     {renameOpen ? <ConversationRenameDialog value={name} pending={rename.isPending}
       onChange={setName} onSubmit={title => rename.mutate(title)} onDismiss={() => setRenameOpen(false)}
       returnFocus={returnFocus} /> : null}
+    {imOpen && props.im ? <ModalSurface label="聊天来源" closeLabel="关闭聊天来源" size="compact" appearance="utility" onDismiss={() => setImOpen(false)} returnFocus={() => trigger.current}>
+      <SettingsPanel title="聊天来源">
+        <Suspense fallback={null}><ImSources fetcher={props.im.fetcher} hostId={props.serverId} threadId={props.threadId}
+          onOpenSettings={() => { setImOpen(false); props.im!.openSettings(); }} reportError={message => notices.error({key:"im-sources",message})} /></Suspense>
+      </SettingsPanel>
+    </ModalSurface> : null}
     {detailsOpen ? <Suspense fallback={null}><ConversationInformationDialog project={props.project} workspaceDirectory={props.workspaceDirectory}
       onDismiss={() => setDetailsOpen(false)} returnFocus={returnFocus} /></Suspense> : null}
     {schedulesOpen && props.schedules ? <ConversationSchedulesPanel port={props.schedules} scope={props.scope} hostId={props.serverId} threadId={props.threadId} onClose={() => setSchedulesOpen(false)} returnFocus={returnFocus} /> : null}

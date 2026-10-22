@@ -44,6 +44,7 @@ import { ActorStore } from '../packages/access-control/src/actors.ts';
 import { ActorAccess } from '../packages/access-control/src/actor-access.ts';
 import { Collaboration, CollaborationHttpApi } from '../packages/access-control/src/collaboration.ts';
 import { createConversationExecution } from './conversation-execution.mjs';
+import { readImConfiguration, startImPlugins } from './im-plugins.mjs';
 import { HumanAccounts } from '../packages/access-control/src/human-accounts.ts';
 import { LocalAccountServerPlugin } from '../plugins/local-account/src/server.ts';
 import { HumanAuth, readHumanAuthConfiguration } from '../packages/access-control/src/human-auth.ts';
@@ -84,6 +85,7 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
   let relayConnectFile;
   let humanAuthConfig;
   let localAccessFile = env.OPENCRAFT_LOCAL_ACCESS_FILE;
+  let imConfigFile = env.OPENCRAFT_IM_CONFIG_FILE;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--help" || argument === "-h") return { help: true };
@@ -121,6 +123,9 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
       const provider = argv[++index];
       if (typeof provider !== 'string' || !/^[a-z][a-z0-9._-]{0,127}$/u.test(provider) || accessMemberProviders.includes(provider)) throw new Error('--access-member-provider requires a unique provider identifier');
       accessMemberProviders.push(provider); accessControl = true;
+    } else if (argument === '--im-config') {
+      imConfigFile = argv[++index];
+      if (!imConfigFile?.startsWith('/')) throw new Error('--im-config requires an absolute private JSON path');
     } else if (argument === '--human-auth-config') {
       humanAuthConfig = argv[++index];
       if (!humanAuthConfig?.startsWith('/')) throw new Error('--human-auth-config requires an absolute private JSON path');
@@ -173,6 +178,7 @@ export function parseHeadlessArguments(argv, env = process.env, getHomeDirectory
     ...(accessControl ? { accessControl } : {}), ...(relayConnectFile ? { relayConnectFile } : {}),
     ...(humanAuthConfig ? { humanAuthConfig } : {}),
     ...(localAccessFile ? { localAccessFile } : {}),
+    ...(imConfigFile ? { imConfigFile } : {}),
     ...(accessMemberProviders.length ? { accessMemberProviders } : {}),
     ...(localDesktop || trustedInternalDesktop ? { localDesktop: true } : {}),
     ...(trustedInternalDesktop ? { desktopAccess: "trusted-internal" } : {}),
@@ -234,6 +240,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
   let actorCollaborationApi;
   let actorAccess;
   let humanAccounts;
+  let imPlugins;
   let humanAuth;
   let relay;
   let hubController;
@@ -252,7 +259,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       remoteBrowser?.close();
       desktop?.close(); // Retire viewers before the execution provider; never stop the desktop.
       // Retire admitted ingress clients before their Host provider.
-      const entryResults = await Promise.allSettled([ingress?.close(), sshNativeRpc?.close()]);
+      const entryResults = await Promise.allSettled([ingress?.close(), sshNativeRpc?.close(), imPlugins?.close()]);
       entryResults.push(...await Promise.allSettled([actorCollaboration?.close()]));
       const results = [...entryResults, ...await Promise.allSettled([web?.close(), appHostServer?.close(), agent?.close()])];
       results.push(...await Promise.allSettled([agentIdentity?.close()]));
@@ -273,6 +280,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     // Invalid configured credentials fail startup before any execution resource is created.
     const relayConfiguration = options.relayConnectFile ? await loadRelayConnection(options.relayConnectFile, composition.relayAssertionOptions) : null;
     const humanConfiguration = options.humanAuthConfig ? await readHumanAuthConfiguration(options.humanAuthConfig) : null;
+    const imConfiguration = await readImConfiguration(options.imConfigFile);
     hubController = await createHubController(join(dataDirectory, 'hub-network-controller.json'), join(dataDirectory, 'hub-network.json'));
     if (options.accessControl || options.accessMemberProviders?.length || relayConfiguration || hubController.node?.store.state.origin)
       membership = new MembershipStore(join(dataDirectory, 'memberships.sqlite'));
@@ -457,12 +465,15 @@ export async function startHeadlessServer(options = {}, composition = {}) {
       resolveAppServerTarget: agent.resolveWebsocketUrl,
       appServerIdentity: agentIdentity ?? null,
       mcpAppsService: mcpApps,
+      getImService: () => imPlugins,
       loopbackOnly: host === "127.0.0.1",
       localAccess,
       appHostServer,
       sshServerDescriptors: sshServers.map(binding => binding.descriptor),
       sshManagement,
+      getPluginHealth: () => imPlugins ? {'opencraft.im':imPlugins.states()} : {},
       getStorageOutcomes: () => [
+        ...(imPlugins ? [{name:'im-switchboard',status:imPlugins.outcome.status,appliedVersion:imPlugins.outcome.appliedVersion,movedAside:imPlugins.outcome.movedAsidePaths.length>0}] : []),
         ...(agent.storageOutcomes ?? []),
         {name:"mcp-apps",status:mcpApps.outcome.status,appliedVersion:mcpApps.outcome.appliedVersion,movedAside:mcpApps.outcome.movedAsidePaths.length>0},
         ...(agentIdentity ? [{ name: "thread-identity", hostId: "opencraft-server", status: agentIdentity.store.outcome.status,
@@ -508,6 +519,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
     if (relayConfiguration) relay = connectRelay({ ...relayConfiguration.options, targetPort: relayConfiguration.options.targetPort ?? address.port });
     hubController.node?.start(address.port);
     if (options.codexCoreEndpoint) codexReadiness = maintainHeadlessCodexHost(appHostServer);
+    imPlugins = await startImPlugins(imConfiguration,{dataDirectory,actors:actorStore,collaboration:actorCollaboration,actorAccess,getAppHost:() => appHostServer,admittedActor:actorId => !instanceAccess || instanceAccess.admitsActor(actorId)});
     return { url: `http://127.0.0.1:${address.port}`, listenHost, listenPort: address.port, close };
   } catch (error) {
     await close().catch(() => undefined);
@@ -518,6 +530,7 @@ export async function startHeadlessServer(options = {}, composition = {}) {
 export async function runHeadlessCli({ parseArguments = parseHeadlessArguments, startServer = startHeadlessServer, help = [] } = {}) {
     const args = parseArguments(process.argv.slice(2));
     if (args.help) {
+      process.stdout.write('Optional IM server plugins: --im-config ABSOLUTE_PRIVATE_JSON (also OPENCRAFT_IM_CONFIG_FILE); requires verified human sender bindings.\n');
       process.stdout.write('Optional instance-owned membership: --access-control (memberships.sqlite under --data-dir); administer with access-admin. --access-member-provider PROVIDER admits verified identities from that provider as ordinary members; explicit revocations and admin roles remain authoritative. --relay-connect-file ABSOLUTE_PRIVATE_JSON enables an outbound relay and requires instance membership.\n');
       process.stdout.write('Optional human login (bundled opencraft.account plugin for local accounts): --human-auth-config ABSOLUTE_PRIVATE_JSON (local accounts and OIDC); provision with human-account. Add --access-control to require instance membership.\n');
       process.stdout.write('Optional same-machine managed Web workspace: --local-access-file ABSOLUTE_PRIVATE_FILE (also OPENCRAFT_LOCAL_ACCESS_FILE); the same private key file must be configured at the outer managed Web entry.\n');

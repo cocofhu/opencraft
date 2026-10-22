@@ -88,7 +88,7 @@
     "publish:web": "node scripts/publish-workbench-web.mjs",
     "serve:web:static": "node scripts/serve-workbench-web-cli.mjs",
     "package:headless:linux:amd64": "node scripts/package-headless-linux.mjs",
-    "test:headless-server": "node --import tsx --test tests/headless-server.test.mjs tests/websocket-heartbeat.test.mjs tests/headless-smoke-process.test.mjs tests/headless-composition.test.mjs tests/headless-host-readiness.test.mjs tests/server-request-identity.test.mjs tests/ssh-http-ingress.test.mjs tests/headless-installer.test.mjs tests/join-legacy-fallback.test.ts tests/web-crypto-compat.test.ts tests/websocket-app-host.test.ts tests/host-query-recovery.test.ts tests/chat-workbench-resource-recovery.test.ts tests/web-attachment-upload.test.ts && npm run test:pi-engine",
+    "test:headless-server": "node --import tsx --test tests/headless-server.test.mjs tests/websocket-heartbeat.test.mjs tests/headless-smoke-process.test.mjs tests/headless-composition.test.mjs tests/headless-host-readiness.test.mjs tests/server-request-identity.test.mjs tests/ssh-http-ingress.test.mjs tests/headless-installer.test.mjs tests/join-legacy-fallback.test.ts tests/web-crypto-compat.test.ts tests/websocket-app-host.test.ts tests/host-query-recovery.test.ts tests/chat-workbench-resource-recovery.test.ts tests/web-attachment-upload.test.ts && npm run test:pi-engine && npm run test:im",
     "smoke:headless:linux": "node scripts/smoke-headless-package.mjs",
     "smoke:headless:source": "node --import tsx scripts/smoke-headless-source.mjs",
     "deploy:web": "npm run build:web:release && npm run publish:web",
@@ -249,7 +249,8 @@
     "check:icons": "tsx scripts/generate-native-control-icons.tsx --check && node scripts/check-interface-icons.mjs",
     "smoke:control-icons": "node scripts/smoke-native-control-icons.mjs",
     "generate:control-icons": "tsx scripts/generate-native-control-icons.tsx",
-    "test:pi-engine": "tsx --test tests/pi-durable-engine.test.ts tests/pi-model-configuration.test.ts tests/pi-runtime-packaging.test.mjs"
+    "test:pi-engine": "tsx --test tests/pi-durable-engine.test.ts tests/pi-model-configuration.test.ts tests/pi-runtime-packaging.test.mjs",
+    "test:im": "tsx --test tests/im-switchboard.test.ts tests/wecom-plugin.test.ts"
   },
   "dependencies": {
     "react": "19.3.1",

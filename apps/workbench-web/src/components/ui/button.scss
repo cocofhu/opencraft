@@ -102,7 +102,7 @@
   @media (prefers-reduced-motion: reduce) { transition: none; }
 }
 
-.ui-button__spinner {
+.ui-button__spinner, .settings-control-button__spinner {
   position: absolute;
   width: 14px;
   height: 14px;
@@ -113,3 +113,5 @@
 @keyframes ui-button-spin {
   to { transform: rotate(1turn); }
 }
+
+.settings-control-button__spinner { position: static; flex: 0 0 14px; }

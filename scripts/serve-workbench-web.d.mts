@@ -9,6 +9,7 @@ export interface WorkbenchWebServer {
 
 export function createWorkbenchWebServer(options?: {
   root?: string;
+  getImService?: () => { handle(request: import("node:http").IncomingMessage, response: import("node:http").ServerResponse, sameOrigin: (request: import("node:http").IncomingMessage, requireOrigin: boolean) => boolean): Promise<boolean> } | null;
   appServerTarget?: string | null;
   resolveAppServerTarget?: () => Promise<string>;
   /** Hub-owned metadata overlay; trusted submission identity comes from server authentication. */

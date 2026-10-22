@@ -1,6 +1,7 @@
 import { useConversationDisplay } from "./runtime/use-conversation-display";
 import { displayTimingCounts } from "./runtime/display-timing-diagnostics";
 import { reportDisplayEvent } from "./runtime/recovery-diagnostics";
+import { serverFetch } from "./runtime/server-context";
 import { ConversationReferenceSurface } from "./components/conversation-reference-surface";
 import { copyConversationReference } from "./runtime/conversation-reference-actions";
 import { useAsyncNotices } from "./components/async-notices";
@@ -1750,6 +1751,9 @@ export function App({
         <Suspense fallback={conversationActionSizing}>
           <ConversationTaskMenu
             key={JSON.stringify([displayScope, snapshot.hostId, activeThreadId])}
+            im={settingsContributionSnapshot.settingsPages.some(page => page.contribution.id === "opencraft.im.channels") ? {
+              fetcher: serverFetch, openSettings: () => workbenchNavigation.openSettings("opencraft.im.channels"),
+            } : undefined}
             {...conversationToolbarProps}
           />
         </Suspense>
