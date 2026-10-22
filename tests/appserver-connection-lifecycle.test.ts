@@ -9,6 +9,20 @@ import { WebSocket, WebSocketServer } from "ws";
 
 const params = { clientInfo: { name: "lifecycle-test", version: "1" }, capabilities: { experimentalApi: true } };
 const initialized = { codexHome: "/tmp/lifecycle-fixture", platformFamily: "unix", platformOs: "linux", userAgent: "fixture" };
+for (const revoke of ["close", "abort"] as const) test(`initialization revoked before acquisition by ${revoke} allocates no transport`, async () => {
+  let allocations = 0;
+  const transport = new MemoryTransport({ receive() {} });
+  const connect = transport.connect.bind(transport);
+  transport.connect = signal => { allocations++; return connect(signal); };
+  const client = new JsonRpcAppServerClient({ hostId: "revoked", transport });
+  const abort = new AbortController();
+  const rejected = assert.rejects(client.connect(params, abort.signal), error =>
+    error instanceof Error && (error as Error & { code?: string }).code === (revoke === "close" ? "CLOSED" : "ABORTED"));
+  if (revoke === "close") await client.close(); else abort.abort();
+  await rejected;
+  assert.equal(allocations, 0);
+  await client.close();
+});
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -119,6 +133,46 @@ test("client close invalidates a held inbound request without waiting for its ha
   try { assert.equal(rejected, true); } finally { gate.resolve(null); await turn(); }
   assert.deepEqual(f.frames, []);
 });
+
+test("synchronous connecting observers share one client initialization", async () => {
+  let initializations = 0;
+  const transport = new MemoryTransport({ receive(frame, peer) {
+    const request = parseJsonRpcMessage(frame);
+    if (isJsonRpcRequest(request) && request.method === "initialize") {
+      initializations++;
+      peer.send(encodeJsonRpcMessage({ id: request.id, result: initialized }));
+    }
+  } });
+  const client = new JsonRpcAppServerClient({ hostId: "reentry", transport });
+  let second: Promise<unknown> | undefined;
+  let entered = false;
+  client.subscribeStatus(status => {
+    if (status.state === "connecting" && !entered) { entered = true; second = client.connect(params); }
+  });
+  try {
+    await client.connect(params); await second;
+    assert.equal(initializations, 1);
+    assert.equal(client.connectionGeneration, 1);
+  } finally { await client.close(); }
+});
+
+for (const eventType of ["queued", "started"] as const) {
+  test(`cancellation in ${eventType} observation cannot start or send a retired request`, async () => {
+    const f = fixture(); const controller = new AbortController(); const events: string[] = [];
+    try {
+      await f.client.connect(params);
+      f.client.subscribeRequestLifecycle(event => {
+        if (!("method" in event) || event.method !== "fixture/mutation") return;
+        events.push(event.type);
+        if (event.type === eventType) controller.abort();
+      });
+      await assert.rejects(f.client.requestRaw("fixture/mutation", {}, { signal: controller.signal }), { code: "ABORTED" });
+      await turn();
+      assert.deepEqual(f.frames, []);
+      assert.deepEqual(events, eventType === "queued" ? ["queued", "aborted"] : ["queued", "started", "aborted"]);
+    } finally { await f.client.close(); }
+  });
+}
 
 function permutations<T>(values: readonly T[]): T[][] {
   if (values.length === 0) return [[]];

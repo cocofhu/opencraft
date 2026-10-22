@@ -31,14 +31,14 @@ test('protocol classifier preserves fragmented HTTP/SSH boundaries and rejects o
   }
 });
 
-for (const direct of [false, true]) test(`same public port keeps ${direct ? 'direct' : 'proxied'} Web HTTP/WS separate from authenticated SSH native Host proxy`, async () => {
+for (const direct of [false, true]) test(`same public port keeps ${direct ? 'direct' : 'proxied'} Web HTTP/WS separate from authenticated SSH native Host proxy`, { timeout: 30_000 }, async () => {
   const host = identity(), user = identity(), wrong = identity();
   const listeners = new Set(); let status = { state: 'idle' };
   const statuses = new Set();
   const adapter = {
     subscribeMessage(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     subscribeStatus(fn) { statuses.add(fn); return () => statuses.delete(fn); },
-    status: () => status,
+    get status() { return status; },
     async connect() { status = { state: 'open' }; for (const fn of statuses) fn(status); },
     async close() { status = { state: 'closed' }; for (const fn of statuses) fn(status); },
     async send(frame) { const value = JSON.parse(frame); for (const fn of listeners) fn(JSON.stringify({ id: value.id, result: { echoed: value.method }, __opencraftClient: value.__opencraftClient })); },

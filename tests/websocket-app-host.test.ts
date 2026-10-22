@@ -464,3 +464,42 @@ test("private recovery awaits admission and never opens a socket after cancellat
     if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow); else delete (globalThis as { window?: unknown }).window;
   }
 });
+
+
+
+test("expired claim saturation renews the shared browser socket and lets its peer recover", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { href: "https://example.test/chat" } } });
+  const first = new FakeSocket(), successor = new FakeSocket(), sockets = [first, successor];
+  const events = new RecoveryEvents(); let created = 0;
+  const client = connectWebSocketAppHost(() => { created++; return sockets.shift() as unknown as WebSocket; }, { recoveryEvents: events, reportFailure: () => undefined });
+  const slow = client.createTransport("slow"), peer = client.createTransport("healthy");
+  const accept = async (socket: FakeSocket, initial: boolean) => {
+    await flush();
+    if (initial) { socket.open(); socket.receive({ type: "ready", protocolVersion: 2, services: ["appserver"], capabilities: { connectionProbe: true } }); await flush(); }
+    const request = socket.sent.map(frame => JSON.parse(frame)).findLast(message => message.type === "host/connect");
+    socket.receive({ type: "response", requestId: request.requestId, ok: true, result: { hostId: request.hostId, generation: 1 } });
+  };
+  try {
+    const connected = peer.connect(); await accept(first, true); await connected;
+    for (let index = 0; index < 256; index++) {
+      const expired = assert.rejects(slow.connect(), /host\/connect timed out/);
+      await flush(); context.mock.timers.tick(30_000); await expired;
+    }
+    events.fire(); const probe = first.sent.map(frame => JSON.parse(frame)).findLast(message => message.type === "connection/probe");
+    first.receive({ type: "response", requestId: probe.requestId, ok: true, result: null });
+    await assert.rejects(slow.connect(), /pending request limit reached/);
+    assert.equal(first.readyState, 3);
+    assert.deepEqual(peer.status.failure, { code: "APP_HOST_REQUEST_LIMIT", recovery: "automatic" });
+    const reconnect = slow.connect(); await accept(successor, true); await reconnect;
+    const peerReconnect = peer.connect(); await accept(successor, false); await peerReconnect;
+    assert.equal(created, 2); assert.equal(slow.status.state, "open"); assert.equal(peer.status.state, "open");
+    assert.equal(peer.status.attemptId, slow.status.attemptId);
+    first.receive({ type: "fatal", error: { code: "OLD_ERROR", message: "late old error", retryable: false } });
+    assert.equal(peer.status.state, "open");
+    const closes = [slow.close(), peer.close()]; await flush();
+    for (const message of successor.sent.map(frame => JSON.parse(frame)).filter(message => message.type === "host/disconnect")) successor.receive({ type: "response", requestId: message.requestId, ok: true });
+    await Promise.all(closes);
+  } finally { client.close(); if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow); else Reflect.deleteProperty(globalThis, "window"); }
+});

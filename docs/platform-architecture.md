@@ -362,6 +362,39 @@ ID tombstone: a completed request or an earlier connection cannot suppress a
 new request after ID reuse. These delivery rules do not replay a mutation or
 terminate the underlying server execution.
 
+Connection attempts and inbound server requests have separate owners. A WebSocket
+attempt installs its promise and cancellation before publishing `connecting`;
+synchronous observers can revoke it before socket allocation. Only that attempt
+may clear its promise, and old close callbacks settle before publishing status
+that can admit a successor. Abort/close cannot resurrect an already revoked attempt.
+Client initialization, deferred transport acquisition and logical Host connection
+also install their single owner before notifying synchronous observers. Reentrant
+connect calls join that operation. A delayed initializer rechecks close and abort
+before acquiring a transport. Outbound request observers can cancel before
+encoding or sending; the request must still own its pending entry after each
+notification, and a WebSocket checks cancellation before physical delivery.
+
+A Host grant is valid only while its physical transport is open. The server checks
+this after activation, before granting and immediately before acknowledging the
+claim. The channel retains terminal statuses seen before acknowledgement by their
+generation: a matching grant is rejected and released, preserving any manual
+failure classification. A different generation neither revokes that grant nor
+gives the channel authority. Termination of the shared bridge revokes every
+pending channel attempt, including a grant already delivered to its promise.
+A late acknowledgement cannot revive a lost Host;
+automatic recovery obtains a new claim through the existing retry policy.
+
+An inbound JSON-RPC request owns a delivery receipt and a connection revision.
+Its live phases are handling and sending; physical delivery or a matching Host
+resolution succeeds the receipt, while connection loss/client disposal rejects
+it and aborts queued sends. Both terminal paths remove ownership immediately.
+Late handler success/failure cannot send through a successor connection or settle
+its receipt. `serverRequest/resolved` only addresses a live request with matching
+ID type/value and, when both are known, Thread identity. It leaves no permanent
+ID tombstone: a completed request or an earlier connection cannot suppress a
+new request after ID reuse. These delivery rules do not replay a mutation or
+terminate the underlying server execution.
+
 Short successful connections do not reset retry history: readiness must remain
 continuous for 60s. Visible foreground/online recovery hints can advance an
 already scheduled retry, at most once per five seconds per Host; they retain
@@ -2776,6 +2809,26 @@ cannot overwrite that channel's terminal closed status. Deterministic coverage
 exercises close before ready, during shared startup and between grant delivery
 and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
 also checks late release while a peer remains open on the same real socket.
+Closing one logical channel cancels its own ready/claim wait without
+closing the shared client or cancelling service-owned startup. A grant already
+in flight is released against its original lease and generation; its completion
+cannot overwrite that channel's terminal closed status. Deterministic coverage
+exercises close before ready, during shared startup and between grant delivery
+and its promise callback (`tests/app-host.test.ts`); the browser origin smoke
+also checks late release while a peer remains open on the same real socket.
+
+Expired claim records still count toward the shared request budget because
+late grants retain cleanup ownership. If they saturate that budget alongside
+pending requests, the client retires the bridge with retryable
+`APP_HOST_REQUEST_LIMIT`; its socket owner then replaces the connection and
+all affected Host attachments can recover. Detaching the bridge releases its
+claims without stopping service-owned execution. Ordinary in-flight backpressure
+without expired claims rejects only the excess request and keeps the bridge.
+The generic WebSocket transport settles unfinished connect callers on explicit
+close even when no platform close event arrives. Delayed close cleanup and
+asynchronous decode failures are fenced to their original socket; neither can
+close or fail a successor connection.
+
 Business envelopes serialize per Host, allowing another Host on the same
 socket and connection probes to progress during a slow activation. Local send
 cancellation releases its pending acknowledgement without cancelling or replaying

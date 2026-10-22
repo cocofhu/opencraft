@@ -125,6 +125,86 @@ class ControlledTransport extends TestTransport {
   }
 }
 
+test("Host activation rejects physical loss before its connect continuation", async () => {
+  class LostTransport extends TestTransport {
+    override async connect() { await super.connect(); this.publish({ state: "closed", reason: "immediate loss" }); }
+  }
+  const physical = new LostTransport(); const server = new AppHostServer({ createTransport: () => physical });
+  const pair = createPortPair(); server.accept(pair.host, "lost");
+  const client = new MessagePortAppHostClient(pair.browser, "lost"); const channel = client.createTransport("host");
+  try { await assert.rejects(channel.connect(), /immediate loss|not open|disconnected/); assert.notEqual(channel.status.state, "open"); }
+  finally { await channel.close(); client.close(); await server.close(); }
+});
+
+test("AppHost channel connecting observers share one owned claim", async () => {
+  const server = new AppHostServer({ createTransport: () => new TestTransport() });
+  const pair = createPortPair(); server.accept(pair.host, "reentry"); let grants = 0;
+  const client = new MessagePortAppHostClient({ ...pair.browser, postMessage(message) {
+    if (message.type === "host/connect") grants++;
+    pair.browser.postMessage(message);
+  } }, "reentry");
+  const channel = client.createTransport("host"); let second: Promise<void> | undefined; let entered = false;
+  channel.subscribeStatus(status => { if (status.state === "connecting" && !entered) { entered = true; second = channel.connect(); } });
+  try {
+    const first = channel.connect(); assert.equal(first, second); await first; await second;
+    assert.equal(grants, 1); assert.equal(channel.status.state, "open");
+  } finally { await channel.close(); client.close(); await server.close(); }
+});
+
+for (const terminal of ["close", "fatal"] as const) test(`bridge ${terminal} after grant delivery cannot revive a channel`, async () => {
+  let listener: ((event: MessageEvent<unknown>) => void) | undefined;
+  const sent: any[] = [];
+  const client = new MessagePortAppHostClient({ postMessage(message) { sent.push(message); },
+    addEventListener(_type, next) { listener = next; }, removeEventListener() {}, start() {}, close() {},
+  }, "terminal-after-grant");
+  const receive = (message: unknown) => listener?.({ data: message } as MessageEvent<unknown>);
+  const channel = client.createTransport("local");
+  try {
+    receive({ type: "ready", protocolVersion: 2, services: ["appserver"] });
+    const connecting = channel.connect();
+    const rejected = assert.rejects(connecting, /closed|retired/);
+    await new Promise(resolve => setImmediate(resolve));
+    const claim = sent.find(message => message.type === "host/connect");
+    receive({ type: "response", requestId: claim.requestId, ok: true, result: { hostId: "local", generation: 1 } });
+    if (terminal === "close") client.close();
+    else receive({ type: "fatal", error: { code: "SSH_AUTH_EXPIRED", message: "bridge retired", retryable: false } });
+    await rejected;
+    assert.equal(channel.status.state, "failed");
+    if (terminal === "fatal") assert.equal(channel.status.failure?.recovery, "manual");
+  } finally { await channel.close(); client.close(); }
+});
+
+for (const matching of [false, true]) for (const manual of [false, true]) {
+  test(`pre-acknowledgement terminal status only revokes its granted generation (matching=${matching}, manual=${manual})`, async () => {
+    const granted = deferred<void>(); const release = deferred<void>();
+    class HeldServer extends AppHostServer {
+      override async handle(connection: Parameters<AppHostServer["handle"]>[0], message: Parameters<AppHostServer["handle"]>[1]) {
+        const result = await super.handle(connection, message);
+        if (message.type === "host/connect") { granted.resolve(); await release.promise; }
+        return result;
+      }
+    }
+    const physical = new TestTransport(); const server = new HeldServer({ createTransport: () => physical });
+    const pair = createPortPair(); server.accept(pair.host, "grant");
+    const client = new MessagePortAppHostClient(pair.browser, "grant"); const channel = client.createTransport("host");
+    try {
+      const connecting = channel.connect(); const outcome = connecting.then(() => null, error => error as Error);
+      await granted.promise;
+      pair.host.postMessage({ type: "host/status", hostId: "host", generation: matching ? 1 : 99,
+        status: { state: "closed", reason: "grant retired", ...(manual ? { failure: { code: "SSH_AUTH_EXPIRED", recovery: "manual" } } : {}) } });
+      await new Promise<void>(resolve => setImmediate(resolve)); release.resolve();
+      const error = await outcome;
+      if (matching) {
+        assert.ok(error); assert.match(error.message, /grant retired/); assert.equal(channel.status.state, "failed");
+        assert.equal(channel.status.failure?.recovery, manual ? "manual" : "automatic");
+      } else {
+        assert.equal(error, null); assert.equal(channel.status.state, "open");
+        await channel.send("current"); assert.deepEqual(physical.sent, ["current"]);
+      }
+    } finally { release.resolve(); await channel.close(); client.close(); await server.close(); }
+  });
+}
+
 test("service connection revalidates its authority after waiting for a physical reset", async () => {
   const physical = new ControlledTransport(); physical.waitForConnect = false; physical.waitForClose = true;
   let created = 0; let authorized = true;
@@ -798,4 +878,138 @@ test("close between grant delivery and its promise callback releases exactly tha
     assert.equal(transport.status.state, "closed");
     receive({ type: "response", requestId: releases[0]!.requestId, ok: true });
   } finally { client.close(); }
+});
+
+
+test("closing a pending channel releases its late grant without disturbing its peer", async () => {
+  const ports = createPortPair();
+  const physical = new ControlledTransport();
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "pending-channel-close");
+  const client = new MessagePortAppHostClient(ports.browser, "pending-channel-close");
+  const retired = client.createTransport("local"), peer = client.createTransport("local");
+  try {
+    const retiring = assert.rejects(retired.connect(), /closed|aborted/);
+    const surviving = peer.connect();
+    await new Promise(resolve => setImmediate(resolve));
+    await retired.close();
+    physical.connectGate.resolve();
+    await Promise.all([retiring, surviving]);
+    await new Promise(resolve => setImmediate(resolve));
+    await peer.send("peer-stays-open");
+    assert.equal(physical.closeCount, 0);
+    await peer.close();
+    assert.equal(physical.closeCount, 1, "the retired channel must not retain a late claim");
+    assert.equal(retired.status.state, "closed", "late completion must not overwrite terminal close");
+  } finally {
+    physical.connectGate.resolve();
+    client.close(); connection.close(); await server.close();
+  }
+});
+
+test("closing before ready cancels only that channel's queued claim", async () => {
+  const ports = createPortPair();
+  const claims: string[] = [];
+  const post = ports.browser.postMessage;
+  ports.browser.postMessage = message => {
+    const input = message as { type: string; leaseId: string };
+    if (input.type === "host/connect") claims.push(input.leaseId);
+    post(message);
+  };
+  const physical = new TestTransport();
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "before-ready-close");
+  const client = new MessagePortAppHostClient(ports.browser, "before-ready-close");
+  const retired = client.createTransport("local"), peer = client.createTransport("local");
+  try {
+    const rejected = assert.rejects(retired.connect(), /aborted|closed/);
+    await retired.close();
+    await peer.connect(); await rejected;
+    assert.equal(claims.length, 1, "only the surviving channel may request a claim");
+    assert.equal(retired.status.state, "closed");
+    await peer.send("still-usable");
+    await peer.close();
+    assert.equal(physical.closeCount, 1);
+  } finally {
+    client.close(); connection.close(); await server.close();
+  }
+});
+
+test("close between grant delivery and its promise callback releases exactly that grant", async () => {
+  let listener: ((event: MessageEvent<unknown>) => void) | undefined;
+  const sent: Array<{ type: string; requestId: string; leaseId: string; generation?: number }> = [];
+  const client = new MessagePortAppHostClient({
+    postMessage: message => { sent.push(message as typeof sent[number]); },
+    addEventListener: (_type, next) => { listener = next; },
+    removeEventListener: () => { listener = undefined; }, start() {}, close() {},
+  }, "grant-close-microtask");
+  const receive = (message: unknown) => listener?.({ data: message } as MessageEvent<unknown>);
+  const transport = client.createTransport("local");
+  try {
+    receive({ type: "ready", protocolVersion: 2, services: ["appserver"] });
+    const rejected = assert.rejects(transport.connect(), /closed|aborted/);
+    await new Promise(resolve => setImmediate(resolve));
+    const claim = sent.find(message => message.type === "host/connect")!;
+    receive({ type: "response", requestId: claim.requestId, ok: true, result: { hostId: "local", generation: 17 } });
+    await transport.close(); await rejected;
+    await new Promise(resolve => setImmediate(resolve));
+    const releases = sent.filter(message => message.type === "host/disconnect");
+    assert.equal(releases.length, 1);
+    assert.equal(releases[0]!.leaseId, claim.leaseId);
+    assert.equal(releases[0]!.generation, 17);
+    assert.equal(transport.status.state, "closed");
+    receive({ type: "response", requestId: releases[0]!.requestId, ok: true });
+  } finally { client.close(); }
+});
+
+
+test("expired claim saturation retires the bridge, preserves service Hosts and fences old grants", async context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const ports = createPortPair(), slow = new ControlledTransport(), healthy = new TestTransport();
+  const server = new AppHostServer({ physicalHostLifetime: "server", createTransport: id => id === "slow" ? slow : healthy });
+  const connection = server.accept(ports.host, "saturated");
+  const client = new MessagePortAppHostClient({ ...ports.browser, close() { ports.browser.close(); connection.close(); } }, "saturated", { maxPendingRequests: 2 });
+  const peer = client.createTransport("healthy");
+  const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+  let successor: MessagePortAppHostClient | undefined;
+  let successorConnection: ReturnType<AppHostServer["accept"]> | undefined;
+  try {
+    await peer.connect();
+    for (let index = 0; index < 2; index++) {
+      const expired = assert.rejects(client.connectHost("slow", client.createLeaseId()), /host\/connect timed out/);
+      await flush(); context.mock.timers.tick(30_000); await expired;
+    }
+    const limitFailure = (error: unknown) => error instanceof Error && (error as Error & { code?: string; retryable?: boolean }).code === "APP_HOST_REQUEST_LIMIT" && (error as Error & { retryable?: boolean }).retryable === true;
+    await assert.rejects(client.connectHost("healthy", client.createLeaseId()), limitFailure);
+    assert.equal(peer.status.state, "failed");
+    assert.deepEqual(peer.status.failure, { code: "APP_HOST_REQUEST_LIMIT", recovery: "automatic" });
+    await assert.rejects(client.waitUntilReady(), limitFailure);
+    assert.equal(healthy.closeCount, 0, "revoking Client attachments cannot stop a service-owned physical Host");
+    const nextPorts = createPortPair();
+    successorConnection = server.accept(nextPorts.host, "successor");
+    successor = new MessagePortAppHostClient(nextPorts.browser, "successor");
+    const next = successor.createTransport("healthy");
+    await next.connect(); await next.send("healthy work after bridge renewal");
+    slow.connectGate.resolve(); for (let index = 0; index < 5; index++) await flush();
+    assert.equal(peer.status.state, "failed", "late startup cannot revive a revoked bridge");
+    assert.equal(next.status.state, "open");
+    assert.deepEqual(healthy.sent, ["healthy work after bridge renewal"]);
+    assert.equal(healthy.connectCount, 1);
+  } finally { slow.connectGate.resolve(); successor?.close(); successorConnection?.close(); client.close(); connection.close(); await server.close(); }
+});
+
+test("ordinary pending-request backpressure does not revoke a healthy bridge", async () => {
+  const ports = createPortPair(), physical = new TestTransport(), gate = deferred<void>();
+  physical.send = async frame => { physical.sent.push(frame); await gate.promise; };
+  const server = new AppHostServer({ createTransport: () => physical });
+  const connection = server.accept(ports.host, "busy");
+  const client = new MessagePortAppHostClient(ports.browser, "busy", { maxPendingRequests: 1 });
+  const channel = client.createTransport("healthy");
+  try {
+    await channel.connect(); const first = channel.send("in flight");
+    await assert.rejects(channel.send("over capacity"), /pending request limit reached/);
+    assert.equal(channel.status.state, "open");
+    gate.resolve(); await first; await channel.send("capacity restored");
+    assert.deepEqual(physical.sent, ["in flight", "capacity restored"]);
+  } finally { gate.resolve(); client.close(); connection.close(); await server.close(); }
 });
