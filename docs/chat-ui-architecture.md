@@ -3068,3 +3068,16 @@ the default content. Default thread creation/navigation stays semantic when
 the Host returns `undefined` or does not provide the port. Handoff disclosures
 exist only for reported progress steps; an empty step list leaves a summary row.
 These choices own presentation and cannot create a Thread or execute a tool.
+
+## Composer execution material feedback
+
+The shared Composer projects its existing `isStreaming` state to a paint-only
+`data-breathing` shell attribute. In touch density, only its existing material
+pseudo-element changes opacity from 1 to 0.92 and back over 5.6 seconds with
+ease-in-out timing. Desktop input material remains fully opaque during execution
+as well as idle; queue and goal rails retain their separate glass treatment.
+Editable text, caret, actions, outline, shadow and layout stay fixed. Recovery
+feedback takes precedence, so `isRecovering` suppresses execution breathing without
+changing either lifecycle. Idle/settled, reduced motion, reduced transparency and
+forced colors retain the ordinary static material. No timer, remount or execution
+state is added; every existing Composer consumer shares the same projection.

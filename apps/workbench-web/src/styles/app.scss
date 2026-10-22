@@ -8856,7 +8856,7 @@ html[data-opencraft-window-type="electron"] .thread-scroll {
 }
 
 @media (forced-colors: active) {
-  .opencraft-composer-shell[data-warning="true"]::before {
+  :where(:root[data-ui-density="touch"]) .opencraft-composer-shell[data-warning="true"]::before {
     background: Canvas;
     box-shadow: none;
     outline: 1px solid CanvasText;
