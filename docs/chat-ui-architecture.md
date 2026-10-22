@@ -2376,6 +2376,12 @@ ordinary DOM, focus, model context and pending operations are not checkpointed.
 The App restores its own controls from the saved data; an Application reload ends
 the checkpoint. Display-name changes do not change the App identity.
 
+Manual Pause is a separate host-owned view choice in the same App scope. Row
+recycling and connection replacement keep the App paused, without loading its
+resource or mounting its iframe. Only an explicit Open resumes it. App-authored
+widget JSON cannot change that choice. A different App identity starts with its
+own choice, and an Application reload ends this in-memory preference.
+
 ### MCP approval keyboard ownership
 
 MCP tool approvals preserve the focused control's native Enter action: Deny

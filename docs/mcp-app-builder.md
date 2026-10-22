@@ -130,6 +130,9 @@ resource URI and call ID. The App must restore its controls from that bounded JS
 arbitrary DOM and unsaved inputs are not captured. Active authority is checked
 again by the original owner and bridge. Data recovery neither executes an operation
 nor grants access, and an Application reload ends this view checkpoint.
+The host also retains an explicit Pause choice in that scope. Recycling a row or
+replacing a connection does not reload a paused App; only the user choosing Open
+resumes it. App-authored widget JSON cannot alter this host control.
 The builder UI is an explicit management resource, not a startup page.
 
 ## Visual authoring in the conversation

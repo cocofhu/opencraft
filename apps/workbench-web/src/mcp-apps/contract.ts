@@ -11,7 +11,11 @@ export interface McpAppPort {
   updateContext(id: string, value: string | null): void;
   openLink(url: string): void;
 }
-export interface McpAppWidgetState { current: unknown }
+export interface McpAppWidgetState {
+  current: unknown;
+  /** Host UI intent, separate from the App-authored JSON in current. */
+  pausedByUser?: boolean;
+}
 export type McpAppWidgetStateStore = Map<string, McpAppWidgetState>;
 export interface McpAppIdentity {
   readonly server: string;

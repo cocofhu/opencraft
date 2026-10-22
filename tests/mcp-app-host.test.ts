@@ -39,9 +39,10 @@ test("saved widget data survives owner replacement, isolates App identities and 
   const bridge = createAppBridge({ port: first, identity, contextId: "item", hostContext: () => ({}),
     input: () => ({}), output: () => ({}), onHeight() {}, onWidgetState: value => { state.current = value; } });
   const save = (id: number, value: unknown) => bridge.receive({ jsonrpc: "2.0", id, method: "opencraft/widget-state", params: { state: value } }, reply => replies.push(reply), true);
-  const saved = { note: "Keep my note 你好" };
+  const saved = { note: "Keep my note 你好", pausedByUser: false };
+  state.pausedByUser = true;
   await save(1, saved); saved.note = "mutated caller object";
-  assert.deepEqual(state.current, { note: "Keep my note 你好" });
+  assert.deepEqual(state.current, { note: "Keep my note 你好", pausedByUser: false });
   await save(2, { note: "x".repeat(32769) });
   assert.ok(replies.at(-1).error);
   current = false; await save(3, { note: "late overwrite" });
@@ -49,14 +50,19 @@ test("saved widget data survives owner replacement, isolates App identities and 
   assert.throws(() => first.widgetState!("item", identity), /stale/);
   const replacement = owner("host:thread", "lease2");
   assert.equal(replacement.widgetState!("item", identity), state);
+  assert.equal(state.pausedByUser, true, "App-authored JSON cannot change the host pause choice");
   assert.equal(replacement.widgetState!("item", { ...identity, name: "Renamed display" }), state);
   for (const [scope, item, changed] of [
     ["other-host:thread", "item", identity], ["host:other-thread", "item", identity],
     ["host:thread", "other-item", identity], ["host:thread", "item", { ...identity, callId: "call2" }],
     ["host:thread", "item", { ...identity, uri: "ui://other/app.html" }],
     ["host:thread", "item", { ...identity, server: "other" }],
-  ] as const) assert.equal(owner(scope, "lease3").widgetState!(item, changed).current, null);
-  assert.deepEqual(state.current, { note: "Keep my note 你好" });
+  ] as const) {
+    const fresh = owner(scope, "lease3").widgetState!(item, changed);
+    assert.equal(fresh.current, null);
+    assert.notEqual(fresh.pausedByUser, true, "A different App does not inherit manual pause");
+  }
+  assert.deepEqual(state.current, { note: "Keep my note 你好", pausedByUser: false });
   assert.deepEqual(calls, []);
   bridge.dispose();
 });

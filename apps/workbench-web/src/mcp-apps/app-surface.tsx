@@ -4,7 +4,7 @@ import { useIntl } from "@opencraft/i18n/react";
 import type { TimelineBlock } from "@opencraft/chat-core";
 import { ConversationDocumentContext } from "../components/conversation/document-context";
 import { createAppBridge } from "./bridge";
-import { boundedJson, record, type McpAppIdentity, type McpAppPort } from "./contract";
+import { boundedJson, record, type McpAppIdentity, type McpAppPort, type McpAppWidgetState } from "./contract";
 import { readAppResource, type AppResource } from "./policy";
 import { sandboxDocument } from "./sandbox";
 import "./app-surface.scss";
@@ -101,10 +101,9 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
 export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const doc = useContext(ConversationDocumentContext);
   const element = useRef<HTMLElement>(null);
-  const localWidgetState = useRef<unknown>(null);
+  const localWidgetState = useRef<McpAppWidgetState>({ current: null });
   const [visible, setVisible] = useState(false);
   const [foreground, setForeground] = useState(document.visibilityState !== "hidden");
-  const [paused, setPaused] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [height, setHeight] = useState(260);
   const intl = useIntl();
@@ -112,6 +111,9 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
     name: block.appName ?? block.name }), [block.server, block.appResourceUri, block.callId, block.appName, block.name]);
   const widgetState = useMemo(() => doc.mcpApps?.widgetState?.(block.id, identity) ?? localWidgetState,
     [doc.mcpApps, block.id, identity]);
+  const [pauseChoice, setPauseChoice] = useState(() => ({ state: widgetState, paused: widgetState.pausedByUser === true }));
+  // A new App identity reads its own intent before an iframe can mount.
+  const paused = pauseChoice.state === widgetState ? pauseChoice.paused : widgetState.pausedByUser === true;
   useEffect(() => {
     const observer = new IntersectionObserver(entries => setVisible(entries.some(entry => entry.isIntersecting)), { rootMargin: "160px" });
     if (element.current) observer.observe(element.current);
@@ -122,7 +124,7 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const ready = doc.mcpApps && identity.server && identity.uri.startsWith("ui://");
   if (!ready) return null;
   return <section ref={element} className="mcp-app" aria-label={identity.name}>
-    <header className="mcp-app__header"><span>{identity.name}</span><button type="button" onClick={() => { setPaused(!paused); setAttempt(value => value + 1); }}>
+    <header className="mcp-app__header"><span>{identity.name}</span><button type="button" onClick={() => { widgetState.pausedByUser = !paused; setPauseChoice({ state: widgetState, paused: !paused }); setAttempt(value => value + 1); }}>
       {paused ? intl.formatMessage({ id: "mcpApp.resume", defaultMessage: "Open app" }) : intl.formatMessage({ id: "mcpApp.pause", defaultMessage: "Pause app" })}
     </button></header>
     <div className="mcp-app__body" style={{ height }}>
