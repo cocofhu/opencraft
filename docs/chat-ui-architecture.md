@@ -2381,6 +2381,7 @@ recycling and connection replacement keep the App paused, without loading its
 resource or mounting its iframe. Only an explicit Open resumes it. App-authored
 widget JSON cannot change that choice. A different App identity starts with its
 own choice, and an Application reload ends this in-memory preference.
+Without an owner-provided store, the surface uses the same typed cell locally.
 
 ### MCP approval keyboard ownership
 

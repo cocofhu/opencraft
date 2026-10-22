@@ -109,7 +109,7 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const intl = useIntl();
   const identity = useMemo<McpAppIdentity>(() => ({ server: block.server ?? "", uri: block.appResourceUri ?? "", callId: block.callId,
     name: block.appName ?? block.name }), [block.server, block.appResourceUri, block.callId, block.appName, block.name]);
-  const widgetState = useMemo(() => doc.mcpApps?.widgetState?.(block.id, identity) ?? localWidgetState,
+  const widgetState = useMemo(() => doc.mcpApps?.widgetState?.(block.id, identity) ?? localWidgetState.current,
     [doc.mcpApps, block.id, identity]);
   const [pauseChoice, setPauseChoice] = useState(() => ({ state: widgetState, paused: widgetState.pausedByUser === true }));
   // A new App identity reads its own intent before an iframe can mount.
