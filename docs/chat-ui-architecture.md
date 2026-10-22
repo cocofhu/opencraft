@@ -2335,3 +2335,23 @@ Readers accept the exact legacy aliases for saved data, with canonical values
 taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
+
+
+### Initial user echoes and explicit steering acknowledgements
+
+User-message normalization may associate the initial params input with an echo
+following only allowlisted setup events (approval review, compaction, fork,
+model/reroute/personality, remote task and worktree initialization). The first
+other Item is an ownership boundary, even if a later message matches. Reuse
+retains server sender, attachments and source identity while params own ordinary
+composer content. Without params input, worktree initialization does not close
+the leading historical user segment. Steering echoes may match an explicit
+server message ID even when Host-enriched text differs and client ID is absent;
+only earlier eligible local rows receive acknowledgements. A stored server ID
+survives a history gap, and declined/backward rows remain separate.
+
+The dictation waveform consumes the live `prefers-reduced-motion` media query.
+Reduced motion paints a static minimum-height signal and suppresses sample-driven
+repaints, while bounded sample collection and recording controls continue. A
+preference change redraws once, and disposal releases the listener with the
+subscription, observer and pending frame.

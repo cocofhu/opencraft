@@ -1852,3 +1852,14 @@ owner.
 
 ## OpenCraft built-in theme identity
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
+
+
+### Message continuity and dictation motion preference
+
+Setup events preceding an initial user echo cannot discard its sender, attachments
+or source identity. Worktree initialization alone cannot hide historical input.
+Explicit steering server IDs join only earlier eligible local messages, survive
+history gaps and never replace ordinary local text with enriched Host prose.
+A live reduced-motion preference keeps dictation's signal static without
+interrupting capture, controls or bounded sample collection; changing preference
+and unmounting retain a single paint/listener owner.
