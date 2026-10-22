@@ -2458,7 +2458,7 @@ step disclosures checkpoint their separate running and settled choices under
 the handoff block identity. Returning to the same View restores those choices;
 a fresh View keeps the running-open and settled-collapsed defaults. Standalone
 automatic-review disclosures retain those separate phase choices by review block.
-Their rationale, including reviews attached to command and tool bodies, retains
+Their rationale, including reviews attached to command, patch and tool bodies, retains
 its own manual choice by parent block and review identity. Collapsing a parent
 body and returning to the same View preserve that choice; fresh Views keep
 rationales collapsed. Review text and status always come from the current
