@@ -39,9 +39,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type Dispatch,
+  type SetStateAction,
   type ReactNode,
 } from "react";
 
@@ -61,6 +64,24 @@ import {
   type ConversationInteractionContextValue,
   type SetupCodexContextCatalogValue,
 } from "../render-contexts";
+
+import { interactionDraftIdentity, type InteractionDraftStore } from "./interaction-drafts";
+
+function useInteractionDraftState<T>(key: string, initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
+  const { drafts } = useContext(ConversationInteractionContext);
+  const [value, setValue] = useState<T>(() => drafts?.has(key)
+    ? drafts.get(key) as T
+    : typeof initial === "function" ? (initial as () => T)() : initial);
+  const current = useRef(value);
+  current.current = value;
+  const update = useCallback<Dispatch<SetStateAction<T>>>((action) => {
+    const next = typeof action === "function" ? (action as (value: T) => T)(current.current) : action;
+    current.current = next;
+    drafts?.set(key, next);
+    setValue(next);
+  }, [drafts, key]);
+  return [value, update];
+}
 
 function elicitationDraftText(value: McpElicitationDraftValue | undefined): string {
   return typeof value === "string" ? value : "";
@@ -172,12 +193,10 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
   const reduceMotion = useReducedMotion();
   const questionsJson = JSON.stringify(block.questions);
   const questions = useMemo<readonly UserInputQuestion[]>(() => JSON.parse(questionsJson), [questionsJson]);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [drafts, setDrafts] = useState<readonly UserInputQuestionDraft[]>(() => createUserInputQuestionDrafts(questions));
+  const [questionIndex, setQuestionIndex] = useInteractionDraftState("questionIndex", 0);
+  const [drafts, setDrafts] = useInteractionDraftState<readonly UserInputQuestionDraft[]>("questions", () => createUserInputQuestionDrafts(questions));
   const cardRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    setQuestionIndex(0);
-    setDrafts(createUserInputQuestionDrafts(questions));
     cardRef.current?.focus();
   }, [questions, block.requestId]);
 
@@ -341,15 +360,10 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
 function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "option-picker" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const composingRef = useRef(false);
-  const [selectedOptions, setSelectedOptions] = useState<readonly string[]>([]);
-  const [freeformText, setFreeformText] = useState("");
+  const [selectedOptions, setSelectedOptions] = useInteractionDraftState<readonly string[]>("options", []);
+  const [freeformText, setFreeformText] = useInteractionDraftState("freeform", "");
   const trimmedFreeform = freeformText.trim();
   const hasAnswer = selectedOptions.length > 0 || trimmedFreeform.length > 0;
-
-  useEffect(() => {
-    setSelectedOptions([]);
-    setFreeformText("");
-  }, [block.requestId]);
 
   const reply = useCallback((action: "submit" | "skip" | "dismiss") => {
     void submission.submit({
@@ -687,12 +701,8 @@ function McpConnectorAuthBlock({ block }: { block: Extract<TimelineBlock, { type
 function McpFormElicitationBlock({ block }: { block: Extract<TimelineBlock, { type: "elicitation" }> }) {
   const submission = useInteractionSubmission(block.requestId);
   const fields = useMemo(() => normalizeMcpElicitationSchema(block.requestedSchema), [block.requestedSchema]);
-  const [draft, setDraft] = useState<McpElicitationDraft>(() => createMcpElicitationDraft(fields));
+  const [draft, setDraft] = useInteractionDraftState<McpElicitationDraft>("form", () => createMcpElicitationDraft(fields));
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
-  useEffect(() => {
-    setDraft(createMcpElicitationDraft(fields));
-    setErrors({});
-  }, [block.requestId, fields]);
   const update = (name: string, value: McpElicitationDraftValue) => {
     setDraft((current) => ({ ...current, [name]: value }));
     setErrors((current) => current[name] === undefined ? current : Object.fromEntries(Object.entries(current).filter(([key]) => key !== name)));
@@ -762,6 +772,9 @@ export interface ConversationPendingInteractionPanelProps {
   readonly setupContextSources?: readonly SetupCodexContextSource[];
   readonly setupContextLoading?: boolean;
   readonly onConnectSetupContextSource?: (source: SetupCodexContextSource) => Promise<void>;
+  readonly draftStore?: InteractionDraftStore;
+  readonly draftScope?: string;
+  readonly requestTurnId?: string | null;
 }
 
 export function ConversationPendingInteractionPanel({
@@ -770,10 +783,22 @@ export function ConversationPendingInteractionPanel({
   setupContextSources = codexSetupContextSourceExamples,
   setupContextLoading = false,
   onConnectSetupContextSource,
+  draftStore,
+  draftScope,
+  requestTurnId,
 }: ConversationPendingInteractionPanelProps) {
+  const identity = block === null ? null : JSON.stringify([requestTurnId, interactionDraftIdentity(block)]);
+  const entry = useMemo(() => identity === null || draftScope === undefined ? undefined : draftStore?.prepare(draftScope, identity), [draftScope, draftStore, identity]);
+  useLayoutEffect(() => {
+    if (entry !== undefined && draftScope !== undefined) draftStore?.retain(draftScope, entry);
+  }, [draftScope, draftStore, entry]);
   const interactionContext = useMemo<ConversationInteractionContextValue>(() => ({
-    respond: onRespondInteraction ?? null,
-  }), [onRespondInteraction]);
+    drafts: entry?.values,
+    respond: onRespondInteraction === undefined ? null : async (requestId, action) => {
+      await onRespondInteraction(requestId, action);
+      if (entry !== undefined && draftScope !== undefined) draftStore?.release(draftScope, entry);
+    },
+  }), [draftScope, draftStore, entry, onRespondInteraction]);
   const setupCatalog = useMemo<SetupCodexContextCatalogValue>(() => ({
     sources: setupContextSources,
     loading: setupContextLoading,
@@ -784,6 +809,7 @@ export function ConversationPendingInteractionPanel({
     <ConversationInteractionContext.Provider value={interactionContext}>
       <SetupCodexContextCatalog.Provider value={setupCatalog}>
       <motion.div
+        key={identity}
         animate={{ opacity: 1, y: 0 }}
         className="thread-pending-request-panel"
         data-pending-request-id={block.requestId}
