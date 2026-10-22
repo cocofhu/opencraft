@@ -1,4 +1,3 @@
-// Generated from ref/hypernode/policy/src/services/dsh-appserver-projection.ts; source methods preserved.
 export function createImplementation(Service, uuidV7, Date) {
 const BASH_TOOLS = new Set(["bash"]);
 function objectValue(value) {

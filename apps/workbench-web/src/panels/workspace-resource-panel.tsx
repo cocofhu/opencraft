@@ -1,3 +1,4 @@
+import { ZoomableImage } from "@opencraft/chat-render-web";
 import { FilePreviewView, officeFileKind } from "@opencraft/file-preview-web";
 import { preparePreviewResources } from "./prepare-preview-resources";
 import { WebChatDocument } from "@opencraft/chat-render-web";
@@ -474,7 +475,7 @@ export function WorkspaceResourcePanel({ tab, ownerId, active, previewOnly = fal
           <div className="workspace-file-viewer__state"><FolderOpen size={20} />{intl.formatMessage(previewOnly ? { id: "panel.directoryHint", defaultMessage: "Choose a file link in the conversation to preview its contents." } : { id: "panel.selectFile", defaultMessage: "Select a file from this directory." })}</div>
         ) : imageMime !== null && resource.data?.blob && fileSource?.blob === resource.data.blob && fileSource.documentId === documentId ? (
           <div className="workspace-file-viewer__image">
-            <img alt={workspaceResourceBasename(selectedPath)} src={fileSource.url} />
+            <ZoomableImage fitToContainer key={documentId} alt={workspaceResourceBasename(selectedPath)} src={fileSource.url} />
             <small><ImageIcon size={12} /> {resource.data.size.toLocaleString()} bytes</small>
           </div>
         ) : officeFileKind(selectedPath) !== null && resource.data?.blob ? (

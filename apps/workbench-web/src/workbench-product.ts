@@ -28,7 +28,7 @@ export function applyWorkbenchProductPresentation(root: HTMLElement, productId: 
   root.dataset.workbenchProduct = productId;
   root.dataset.workbenchIconStyle = presentation.iconStyle;
   const classic = presentation.iconStyle === "classic";
-  root.style.setProperty("--stroke-icon", String((classic ? workbenchIconMetrics.vela : workbenchIconMetrics.core).stroke));
+  root.style.setProperty("--stroke-icon", String((classic ? workbenchIconMetrics.classic : workbenchIconMetrics.core).stroke));
   root.style.setProperty("--stroke-icon-navigation", String(workbenchIconMetrics.coreNavigation.stroke));
   root.style.setProperty("--size-icon-navigation", classic ? "auto" : `${workbenchIconMetrics.core.navigation}px`);
   // Shell density is a fallback; legacy product consumers retain their own SVG dimensions.

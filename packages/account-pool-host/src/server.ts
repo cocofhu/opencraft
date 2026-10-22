@@ -147,7 +147,7 @@ export async function startCodexAccountPoolServer(options: {
       const response = await options.proxy.handle(new Request(`http://${authority}${incoming.url ?? "/"}`, {
         method: incoming.method ?? "GET",
         headers: requestHeaders(incoming),
-        ...(body === undefined ? {} : { body: body.toString("utf8") }),
+        ...(body === undefined ? {} : { body: new Uint8Array(body) }),
         signal: abort.signal,
       }));
       outgoing.statusCode = response.status;

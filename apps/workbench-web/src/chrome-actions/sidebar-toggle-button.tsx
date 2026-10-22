@@ -31,6 +31,10 @@ export function SidebarToggleButton({ open, onToggle, hostRole, stationary = fal
     update();
     const observer = new ResizeObserver(update);
     observer.observe(element);
+    // Branding can settle after the button mounts without resizing its slot.
+    // Observe the intrinsic rail as well so sibling/font changes reposition it.
+    const rail = element.closest(".app-shell-header__window-controls-rail");
+    if (rail) observer.observe(rail);
     window.addEventListener("resize",update);
     window.visualViewport?.addEventListener("resize",update);
     return () => { observer.disconnect(); window.removeEventListener("resize",update); window.visualViewport?.removeEventListener("resize",update); };

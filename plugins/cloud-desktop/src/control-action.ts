@@ -1,16 +1,16 @@
 import { useEffect, useRef, type RefObject, type MouseEvent, type PointerEvent, type KeyboardEvent } from "react";
 import type { DesktopViewController } from "./controller";
 
-type Press = { source: "pointer"; id: number; target: HTMLElement; run: () => void; touch: boolean; released: boolean; x: number; y: number }
+type Press = { source: "pointer"; id: number; target: HTMLElement; run: () => void; managed: boolean; released: boolean; x: number; y: number }
   | { source: "keyboard"; key: string; target: HTMLElement; run: () => void };
 const cancelled = () => {};
 
 /** Presentation owns the native activation sequence. It captures intent before
- * focus changes. Toolbar/keyboard/AT commit on click; managed media touch taps
+ * focus changes. Toolbar/keyboard/AT commit on click; managed media mouse/pen clicks and touch taps
  * commit the fixed command on release, without synthesizing a click.
  * No time windows or delayed input revocation. */
 export function useDesktopControlAction<T extends HTMLElement = HTMLButtonElement>(controller: RefObject<DesktopViewController | null>,
-  action: "take" | "stop", managedTouchActivation = false) {
+  action: "take" | "stop", managedSurfaceActivation = false) {
   const press = useRef<Press | null>(null);
   const prepare = () => controller.current?.prepareControlAction(action) ?? cancelled;
   useEffect(() => {
@@ -47,26 +47,26 @@ export function useDesktopControlAction<T extends HTMLElement = HTMLButtonElemen
   }, [controller]);
   return {
     onPointerDownCapture(event: PointerEvent<T>) {
-      // A managed media surface suppresses compatibility clicks. Its native
-      // single-finger tap commits the fixed command, never a synthesized click.
-      if (managedTouchActivation && event.pointerType === "touch" && !event.isPrimary) {
+      // noVNC can suppress native clicks on its canvas. Commit a managed
+      // mouse/pen click or single-finger tap on release, without a synthetic click.
+      if (managedSurfaceActivation && event.pointerType === "touch" && !event.isPrimary) {
         if (press.current) press.current.run = cancelled;
         return;
       }
       if (event.button !== 0 || !event.isPrimary) return;
       press.current = { source: "pointer", id: event.pointerId, target: event.currentTarget, run: prepare(),
-        touch: managedTouchActivation && event.pointerType === "touch", released: false, x: event.clientX, y: event.clientY };
+        managed: managedSurfaceActivation, released: false, x: event.clientX, y: event.clientY };
     },
     onPointerMoveCapture(event: PointerEvent<T>) {
       const current = press.current;
-      if (current?.source === "pointer" && current.touch && current.id === event.pointerId
+      if (current?.source === "pointer" && current.managed && current.id === event.pointerId
         && Math.hypot(event.clientX - current.x, event.clientY - current.y) >= 8) current.run = cancelled;
     },
     onPointerUpCapture(event: PointerEvent<T>) {
       const current = press.current;
       if (current?.source !== "pointer" || current.id !== event.pointerId) return;
       current.released = true;
-      if (!current.touch) return;
+      if (!current.managed) return;
       const run = current.run; current.run = cancelled;
       // Keep the spent command until any compatibility click consumes it.
       if (event.currentTarget.contains(event.target as Node)

@@ -4,6 +4,7 @@ import type { ConversationOutboxStorage } from "@opencraft/chat-runtime";
 import { ConversationRecoveryOwner, type RecoveryDemand } from "./recovery-policy";
 import {
   AppServerClientError,
+  AppServerRpcError,
   createCordisAppServerRegistry,
   type AppServerClient,
   type AppServerClientRegistryService,
@@ -1109,7 +1110,10 @@ export function createAppServerWorkbenchRuntime(
               steering.push(...(page.steering ?? []));
               cursor = page.nextCursor;
             } while (cursor !== null);
-            if (!disposed && !binding.disposed) {
+            // A change notification received during this read invalidates its
+            // snapshot. Publish only the next complete read, keeping the current
+            // queue visible while it refreshes (including optimistic additions).
+            if (!disposed && !binding.disposed && !binding.queueRefreshRequested) {
               conversation!.replaceQueuedSubmissions(submissions, steering);
             }
           } while (
@@ -1266,8 +1270,10 @@ export function createAppServerWorkbenchRuntime(
   };
 
   const retryableHistoryFailure = (cause: unknown) => !disposed && phase === "ready"
-    && cause instanceof AppServerClientError
-    && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code);
+    && ((cause instanceof AppServerClientError
+      && ["TIMEOUT", "QUEUE_FULL", "TRANSPORT_ERROR", "NOT_CONNECTED"].includes(cause.code))
+      || (cause instanceof AppServerRpcError && typeof cause.data === "object" && cause.data !== null
+        && "retryable" in cause.data && cause.data.retryable === true));
 
   // Resource restoration is not part of Host readiness. A missing Thread
   // must not reconnect the Host or delay another Thread's restoration.
