@@ -6,6 +6,8 @@ import {
   formatHookEventName,
   formatHookSource,
   isVisibleAgentActivityRow,
+  isToolActivityBlock,
+  presentToolActivity,
   resolveAgentActivityLayout,
   type AgentActivityContentUnit,
   type AgentActivityGroupContentUnit,
@@ -92,6 +94,7 @@ function AgentActivityGroup({
         onCollapsedChange={onCollapsedChange}
         icon={header.state === "thinking" ? <ThinkingActivityIcon /> : header.icon === null ? undefined : activityIcon(header.icon)}
         running={header.active}
+        hasRunningRows={visibleBlocks.some(block => isToolActivityBlock(block) && presentToolActivity(block, registry).state === "running")}
         shouldAnimateInitialCollapse={group.lifecycle.isLatestVisibleUnit && group.lifecycle.inProgress && !group.lifecycle.isActivitySliceClosed}
         summary={header.state === "thinking" && header.summary.kind === "text"
           ? <ThinkingLabel summary={header.summary.text} />

@@ -94,7 +94,9 @@ interruption and historical records are static. Reduced-motion preferences remov
 all detail animation and retain the complete base glyph.
 
 Collapsed groups pass their real active state to the shared rail. Expanding hands
-motion to the visible activity rows; the group header stays static. Thinking-only
+motion to visible running activity rows. Summary-only exploration (such as an
+in-progress read) keeps its header motion when expanded because there is no active
+body row. The renderer derives this from existing visibility and presentation. Thinking-only
 group summaries use the shared reasoning icon, not a second spinner. Process
 summary text stays static rather than duplicating the glyph motion with shimmer.
 The standalone review and other non-process shimmer consumers keep their owners.
