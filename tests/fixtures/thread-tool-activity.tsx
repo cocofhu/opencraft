@@ -26,9 +26,21 @@ function tool(id: string, name: string, arguments_: unknown, status = "completed
 }
 
 function Demo() {
+  const [mounted, setMounted] = useState(true);
+  const restore = useRef<ConversationRestoreSnapshot | null>(null);
+  const restoreScenario = new URLSearchParams(location.search).get("restore") === "1";
+  const websiteScenario = new URLSearchParams(location.search).get("scenario") === "webmcp";
+  Object.assign(probe, { setThreadToolMounted: setMounted, clearThreadToolRestore: () => { restore.current = null; } });
   const [phase, setPhase] = useState("inProgress");
   probe.changeThreadToolPhase = setPhase;
-  const items: TimelineSourceItem[] = [
+  const items: TimelineSourceItem[] = websiteScenario ? [{ id: "website", type: "mcpToolCall", payload: {
+    server: "node_repl", tool: "browser_click", status: "completed", arguments: {}, result: { content: [], _meta: { "codex/toolSurface": {
+      kind: "browserUse", backend: "iab", webMcpCalls: [
+        { kind: "invokeTool", name: "lookup_item", title: "Look up an item", inputJson: '{"id":42}', outputJson: '{"result":"WEBSITE_RESULT"}' },
+        { kind: "invokeTool", name: "plain_response", title: "Plain response", outputJson: 'SECOND_RESULT' },
+      ],
+    } } },
+  } }] : [
     tool("fork", "fork_thread", { environment: { type: "worktree" } }, phase),
     tool("read", "read_thread", { threadId: "read-target" }),
     tool("create", "create_thread", { target: { type: "project" } }, "completed", { threadId: "created-target", hostId: "local" }),
@@ -50,9 +62,11 @@ function Demo() {
     authoritative: true, phase: "live", turns: [{ id: "turn", status: phase === "inProgress" ? "streaming" : "complete", items }] }, registry);
   return <div data-phase={phase} style={{ width: "100vw", height: "100dvh" }}>
     <TimelineBlockRendererProvider registry={context.timelineBlockRenderers}>
-      <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+      {mounted ? <Conversation timeline={timeline} scrollPolicy="natural" threadDetailLevel="STEPS_PROSE"
+        initialRestoreSnapshot={restoreScenario ? restore.current : undefined}
+        onRestoreSnapshotChange={restoreScenario ? snapshot => { restore.current = snapshot; } : undefined}
         onOpenSubagent={id => probe.openedThreads.push(id)}
-        footer={<div style={{ height: 48 }}>Composer fixture</div>} />
+        footer={<div style={{ height: 48 }}>Composer fixture</div>} /> : null}
     </TimelineBlockRendererProvider>
   </div>;
 }

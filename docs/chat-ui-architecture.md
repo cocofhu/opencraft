@@ -2349,5 +2349,9 @@ The shared disclosure hook retains separate running-collapsed and settled-expand
 choices; restoration does not change either phase's defaults. MCP details continue
 to start collapsed. A new View starts with the existing defaults, while returning
 to a retained View restores its choice before paint. Only presentation booleans
-are checkpointed; output, permission, execution and App document state remain with
+are checkpointed. Website tool subcalls use the same View store, keyed by their
+source block, ordered subcall slot and tool name; each restores its own explicit
+choice independently and fresh Views retain collapsed defaults. Output,
+permission, execution and App document state remain with
+
 their existing owners. Updated output is rendered from the current timeline.

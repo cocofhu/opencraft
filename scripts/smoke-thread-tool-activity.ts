@@ -82,6 +82,45 @@ try {
   }
 
   if (!restoreOnly) {
+  for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
+    const page = await browser.newPage({ viewport: { width, height: 1100 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
+    inspectedPage = page;
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript("window.__name=value=>value");
+    await page.goto(vite.resolvedUrls!.local[0]! + `?scenario=webmcp&restore=1&theme=${theme}`);
+    const activate = (target: import("playwright").Locator) => width === 390 ? target.tap() : target.click();
+    const openGroups = async () => {
+      const groups = page.locator('.thread-agent-activity__group-disclosure > .thread-activity-item__header button[aria-expanded="false"]');
+      for (let index = 0; index < 10 && await groups.count(); index++) await activate(groups.first());
+    };
+    await page.locator("[data-phase]").waitFor(); await openGroups();
+    const first = page.getByRole("button", { name: "Look up an item", exact: true });
+    const second = page.getByRole("button", { name: "Plain response", exact: true });
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    await activate(first); await activate(second);
+    const remount = async (fresh = false) => {
+      await page.evaluate(() => (window as unknown as { setThreadToolMounted(value: boolean): void }).setThreadToolMounted(false));
+      await first.waitFor({ state: "detached" });
+      if (fresh) await page.evaluate(() => (window as unknown as { clearThreadToolRestore(): void }).clearThreadToolRestore());
+      await page.evaluate(() => (window as unknown as { setThreadToolMounted(value: boolean): void }).setThreadToolMounted(true));
+      if (fresh) await openGroups();
+      await first.waitFor();
+    };
+    await remount();
+    assert.equal(await first.getAttribute("aria-expanded"), "true");
+    assert.equal(await second.getAttribute("aria-expanded"), "true");
+    await page.getByText('{"result":"WEBSITE_RESULT"}', { exact: true }).waitFor();
+    await activate(first); await remount();
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    assert.equal(await second.getAttribute("aria-expanded"), "true");
+    await remount(true);
+    assert.equal(await first.getAttribute("aria-expanded"), "false");
+    assert.equal(await second.getAttribute("aria-expanded"), "false");
+    assert.deepEqual(errors, []);
+    results.push({ width, theme, websiteViewChoices: true, independentCalls: true, freshViewCollapsed: true });
+    await page.close();
+  }
   if (!process.argv.includes("--live-only")) for (const width of [390, 1100]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, hasTouch: width === 390, isMobile: width === 390, reducedMotion: "reduce" });
     inspectedPage = page;

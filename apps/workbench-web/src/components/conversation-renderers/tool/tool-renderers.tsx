@@ -84,8 +84,8 @@ function ContentPart({ part, id }: { part: ToolCallContentPart; id: string }) {
   </div> : null}</section>;
 }
 
-function WebToolCall({ call }: { call: WebMcpToolSurfaceCall }) {
-  const [open, setOpen] = useState(false);
+function WebToolCall({ call, documentId }: { call: WebMcpToolSurfaceCall; documentId: string }) {
+  const [open, setOpen] = useActivityOpen(false, false, JSON.stringify(["webmcp", documentId, call.name]));
   return <ActivityDisclosure icon={<Globe2 />} summary={call.title ?? call.name} open={open}
     onOpenChange={setOpen} running={false} bodyVariant="grouped" unmountBodyWhenCollapsed>
     <div className="thread-tool-details">
@@ -185,7 +185,8 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     unmountBodyWhenCollapsed>
     {hasCoreBody || content !== undefined ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
-    {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call} />)}
+    {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call}
+      documentId={block.id + ":webmcp:" + index} />)}
   </>;
 }
 
