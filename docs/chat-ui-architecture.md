@@ -2482,3 +2482,10 @@ unrelated local steering and server messages retain separate identities. The
 same single-part form participates in exact Host display-span recognition and
 realtime delegation parsing, so voice envelopes remain typed transcripts rather
 than literal user markup. Unsupported part kinds remain ignored.
+
+Shared ModalSurface leaves Escape dismissal with Radix after composition ends.
+While a native key event reports isComposing or the compatibility keyCode 229,
+the input method owns Escape: prevent Radix dismissal at onEscapeKeyDown, before
+the document capture listener can close the dialog and unmount its query.
+The original conversation-search regression drives Chromium composition and
+ordinary Escape, retaining query, input identity and focus on desktop and touch.
