@@ -213,7 +213,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
   }, [completeCurrentQuestion, draft, question, updateDraft]);
   const submitCurrent = useCallback(() => completeCurrentQuestion(drafts), [completeCurrentQuestion, drafts]);
   const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.defaultPrevented || question === undefined) return;
+    if (event.defaultPrevented || event.nativeEvent.isComposing || question === undefined) return;
     const inputTarget = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -221,7 +221,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       return;
     }
     if (inputTarget) {
-      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         submitCurrent();
       }
@@ -249,7 +249,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
       if (option !== undefined && !question.multiSelect) selectOption(option.id, false);
       return;
     }
-    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+    if (event.key === "Enter") {
       event.preventDefault();
       submitCurrent();
     }
@@ -340,6 +340,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
 
 function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "option-picker" }> }) {
   const submission = useInteractionSubmission(block.requestId);
+  const composingRef = useRef(false);
   const [selectedOptions, setSelectedOptions] = useState<readonly string[]>([]);
   const [freeformText, setFreeformText] = useState("");
   const trimmedFreeform = freeformText.trim();
@@ -367,14 +368,15 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
 
   return (
     <section className="thread-interaction-card thread-option-picker" data-interaction-kind="option-picker" data-state={block.state} onKeyDown={(event) => {
+      if (event.defaultPrevented || event.nativeEvent.isComposing) return;
       if (event.key === "Escape") {
         event.preventDefault();
         reply("dismiss");
       }
     }}>
-      <form onSubmit={(event) => {
+      <form onCompositionStart={() => { composingRef.current = true; }} onCompositionEnd={() => { composingRef.current = false; }} onSubmit={(event) => {
         event.preventDefault();
-        if (hasAnswer) reply("submit");
+        if (!composingRef.current && hasAnswer) reply("submit");
       }}>
         <header>
           <strong>{block.question}</strong>
@@ -401,6 +403,7 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
             disabled={submission.disabled}
             onChange={(event) => setFreeformText(event.currentTarget.value)}
             onKeyDown={(event) => {
+              if (event.defaultPrevented || event.nativeEvent.isComposing) return;
               if (event.key === "Enter") {
                 event.preventDefault();
                 if (hasAnswer) reply("submit");

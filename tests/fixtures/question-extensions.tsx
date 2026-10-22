@@ -9,8 +9,9 @@ const block: any = { id: "question", type: "question", requestId: "request", met
 function Demo() {
   const [current, setCurrent] = useState(block);
   (window as any).questionFixture = {
+    showOptionPicker: () => setCurrent({ id: "picker", type: "option-picker", requestId: "picker-request", method: "item/tool/call", state: "pending", question: "Choose a scope", allowMultiple: false, options: [{ id: "small", label: "Small", description: null }, { id: "wide", label: "Wide", description: null }], submitLabel: null, skipLabel: null }),
     refresh: () => setCurrent((value: any) => structuredClone(value)),
-    replaceRequest: () => setCurrent((value: any) => ({ ...value, requestId: "replacement-request" })),
+    replaceRequest: () => setCurrent((value: any) => ({ ...value, requestId: `${value.requestId}-replacement` })),
     changeQuestion: () => setCurrent((value: any) => ({ ...value, questions: value.questions.map((question: any) => ({ ...question, prompt: "Choose updated steps" })) })),
     showTwoQuestions: () => setCurrent({ ...block, requestId: "two-question-request", questions: [block.questions[0], { ...block.questions[0], id: "second", header: "Second question", prompt: "Describe second step", multiSelect: false, options: [] }] }),
   };

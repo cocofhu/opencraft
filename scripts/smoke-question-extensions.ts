@@ -44,7 +44,34 @@ try {
     assert.equal(await page.locator(".thread-request-input__pagination").innerText(), "2 of 2");
     assert.deepEqual(await secondInput.evaluate((element: HTMLInputElement) => ({ value: element.value, same: element === (window as any).questionInput, focus: document.activeElement === element, start: element.selectionStart, end: element.selectionEnd })), { value: "Second page draft", same: true, focus: true, start: 2, end: 7 });
     assert.equal(await page.evaluate(() => (window as any).answers.length), 1);
+    for (const key of ["Enter", "Escape"]) await secondInput.dispatchEvent("keydown", { key, bubbles: true, isComposing: true });
+    assert.equal(await page.evaluate(() => (window as any).answers.length), 1, "Question IME keys never submit or skip");
+    await secondInput.press("Enter");
+    await page.waitForFunction(() => (window as any).answers.length === 2);
+    assert.equal(await page.evaluate(() => (window as any).answers[1].type), "answer-questions");
+    await page.evaluate(() => (window as any).questionFixture.replaceRequest());
+    const firstInput = page.getByRole("textbox", { name: "Response to Choose steps", exact: true });
+    await firstInput.waitFor(); await firstInput.press("Escape");
+    await page.waitForFunction(() => (window as any).answers.length === 3);
+    assert.deepEqual(await page.evaluate(() => (window as any).answers[2]), { type: "cancel" });
+    await page.evaluate(() => (window as any).questionFixture.showOptionPicker());
+    const pickerInput = page.getByRole("textbox", { name: "Something else", exact: true });
+    await pickerInput.fill("中文候选");
+    await pickerInput.dispatchEvent("compositionstart", { data: "候选" });
+    for (const key of ["Enter", "Escape"]) await pickerInput.dispatchEvent("keydown", { key, bubbles: true, isComposing: true });
+    await page.locator(".thread-option-picker form").evaluate((element: HTMLFormElement) => element.requestSubmit());
+    assert.equal(await page.evaluate(() => (window as any).answers.length), 3, "Picker IME keys and implicit form submission preserve the request");
+    assert.equal(await pickerInput.inputValue(), "中文候选");
+    await pickerInput.dispatchEvent("compositionend", { data: "候选" });
+    await pickerInput.press("Enter");
+    await page.waitForFunction(() => (window as any).answers.length === 4);
+    assert.deepEqual(await page.evaluate(() => (window as any).answers[3]), { type: "submit-option-picker", action: "submit", selectedOptions: [], freeformAnswer: "中文候选" });
+    await page.evaluate(() => (window as any).questionFixture.replaceRequest());
+    await page.waitForFunction(() => (document.querySelector(".thread-option-picker input") as HTMLInputElement)?.disabled === false);
+    await pickerInput.press("Escape");
+    await page.waitForFunction(() => (window as any).answers.length === 5);
+    assert.equal(await page.evaluate(() => (window as any).answers[4].action), "dismiss");
     assert.deepEqual(errors, []); await page.close();
   }
-  console.log(JSON.stringify({ result: "passed", mobileWeb: true, desktopWeb: true, explicitMultiSubmit: true, fullPlanMarkdown: true, semanticRefreshRetainsDraft: true, replacementResetsDraft: true, questionPageRetained: true, output }));
+  console.log(JSON.stringify({ result: "passed", mobileWeb: true, desktopWeb: true, explicitMultiSubmit: true, fullPlanMarkdown: true, semanticRefreshRetainsDraft: true, replacementResetsDraft: true, questionPageRetained: true, imeKeysRetained: true, implicitFormCompositionGuard: true, ordinaryQuestionAndPickerKeys: true, output }));
 } finally { await browser?.close(); await vite.close(); }

@@ -2332,3 +2332,13 @@ metadata update, such as renaming the conversation, does not create a new questi
 A different request ID or changed question definitions reset the input state.
 The question panel stabilizes its typed JSON definitions before initializing its
 local input state; array allocation is not a user-visible reset signal.
+
+### Question keyboard composition
+
+Pending question and option picker cards leave keyboard ownership with the input
+method while composition is active. Enter and Escape must not submit, skip or
+dismiss the request during composition. The option picker also guards implicit
+form submission using the input's composition lifecycle; ignoring a composing
+keydown alone does not prevent the browser from submitting a form. Ordinary
+Enter and Escape retain their existing answer and dismissal actions once
+composition has ended.
