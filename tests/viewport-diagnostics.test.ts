@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createViewportDiagnostics } from "../apps/workbench-web/src/runtime/viewport-diagnostics";
+import { createViewportDiagnostics, observeViewportDiagnostics } from "../apps/workbench-web/src/runtime/viewport-diagnostics";
 
 function fixture(t: test.TestContext) {
   let now = 0;
@@ -9,6 +9,8 @@ function fixture(t: test.TestContext) {
   const reports: Record<string, number | string>[] = [];
   class Element {
     isContentEditable = true;
+    scrollTop = 0;
+    closest(_selector: string): unknown { return null; }
     getBoundingClientRect() { return { top, height: 394, bottom: top + 394 }; }
   }
   const shell = new Element();
@@ -16,6 +18,7 @@ function fixture(t: test.TestContext) {
     visibilityState: "visible",
     documentElement: Object.assign(new Element(), { clientHeight: 688 }),
     body: new Element(), activeElement: shell,
+    elementFromPoint(_x: number, _y: number): unknown { return null; },
     querySelector(selector: string) {
       return selector.startsWith("meta") ? { content: revision } : shell;
     },
@@ -37,7 +40,7 @@ function fixture(t: test.TestContext) {
     reports.push(JSON.parse(String(init.body)));
     return new Response("{}", { status: 202 });
   });
-  return { reports, doc, advance(ms: number) { now += ms; top++; }, revision(value: string) { revision = value; } };
+  return { reports, doc, top(value: number) { top = value; }, advance(ms: number) { now += ms; top++; }, revision(value: string) { revision = value; } };
 }
 
 test("long-lived pages retain evidence after the first 64 keyboard observations", t => {
@@ -51,6 +54,78 @@ test("long-lived pages retain evidence after the first 64 keyboard observations"
   assert.equal(last.shellTop, 96);
   assert.equal(last.scrollY, 294);
   assert.doesNotMatch(JSON.stringify(last), /text|route|account|userAgent/);
+});
+
+test("diagnostics use the focused Composer and preserve independent touch coordinate differences", t => {
+  const f = fixture(t), report = createViewportDiagnostics();
+  const send = {
+    getBoundingClientRect: () => ({ left: 250, top: 106, width: 44, height: 44, bottom: 150 }),
+    contains: (element: unknown) => element === send,
+  };
+  const composer = {
+    getBoundingClientRect: () => ({ top: 20, bottom: 160 }),
+    querySelector: () => send,
+  };
+  f.doc.activeElement.closest = selector => selector === ".opencraft-composer-shell" ? composer : { scrollTop: 29 };
+  f.doc.activeElement.scrollTop = 7;
+  f.doc.elementFromPoint = () => send;
+  report({ type: "touchstart", changedTouches: [{ screenY: 700, clientY: 306, pageY: 600 }] } as unknown as Event);
+  const result = f.reports.at(-1)!;
+  assert.equal(result.sendBottom, 150, "A hidden page's first button is not the focused Composer");
+  assert.equal(result.sendHit, 1);
+  assert.equal(result.composerTop, 20);
+  assert.equal(result.draftScroll, 29);
+  assert.equal(result.editorScroll, 7);
+  assert.equal(result.touchScreenClientY, 394);
+  assert.equal(result.touchPageClientY, 294);
+  assert.equal(result.touchSequence, 1);
+  assert.doesNotMatch(JSON.stringify(result), /clientY|screenY|pageY|text|route|account|userAgent/);
+});
+
+test("observation samples layout-only changes and releases all native listeners and frames", t => {
+  let now = 0, id = 0, reports = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  const documentObject = Object.assign(new EventTarget(), { visibilityState: "visible" });
+  const visual = new EventTarget();
+  const windowObject = {
+    visualViewport: visual,
+    requestAnimationFrame(fn: FrameRequestCallback) { frames.set(++id, fn); return id; },
+    cancelAnimationFrame(key: number) { frames.delete(key); },
+  };
+  for (const [key, value] of Object.entries({ document: documentObject, window: windowObject })) {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { value, configurable: true });
+    t.after(() => { if (previous) Object.defineProperty(globalThis, key, previous); else Reflect.deleteProperty(globalThis, key); });
+  }
+  t.mock.method(performance, "now", () => now);
+  const advance = (at: number) => { now = at; const work = [...frames.values()]; frames.clear(); work.forEach(fn => fn(at)); };
+  const observation = observeViewportDiagnostics(() => reports++);
+  assert.equal(reports, 1);
+  advance(16); advance(32);
+  assert.equal(reports, 3, "Layout readback is observed without any port publication");
+  documentObject.dispatchEvent(new Event("scroll"));
+  assert.equal(reports, 4, "Internal focus reveal scroll is observed in capture phase");
+  advance(1100); assert.equal(frames.size, 0, "Observation is bounded");
+  visual.dispatchEvent(new Event("resize")); assert.equal(frames.size, 1);
+  observation.dispose(); assert.equal(frames.size, 0);
+  const before = reports;
+  for (const event of ["focusin", "focusout", "touchstart", "scroll", "visibilitychange"]) documentObject.dispatchEvent(new Event(event));
+  visual.dispatchEvent(new Event("scroll")); visual.dispatchEvent(new Event("resize"));
+  assert.equal(reports, before, "Disposed observers cannot survive a route/host lifecycle");
+});
+
+test("a sub-budget frame excursion survives recovery before the next transmission", t => {
+  const f = fixture(t), report = createViewportDiagnostics();
+  report();
+  f.advance(16); f.top(-294); report();
+  f.advance(16); f.top(0); report();
+  assert.equal(f.reports.length, 1, "Network traffic is still bounded");
+  f.advance(80); f.top(0); report();
+  const result = f.reports.at(-1)!;
+  assert.equal(result.editorTop, 0, "The final frame alone looks recovered");
+  assert.equal(result.editorMinTop, -294, "The earlier excursion is retained");
+  assert.equal(result.shellMinTop, -294);
+  assert.equal(result.observedSamples, 3);
 });
 
 test("sustained geometry changes stay rate bounded and observation recovers after idle", t => {

@@ -615,9 +615,15 @@ test("AppHost diagnostics correlate two browser sockets and reject payload field
     rootTop: -60, rootHeight: 844, bodyTop: -60, bodyHeight: 844, fixedTop: -60, fixedLeft: 0 };
   assert.equal((await postViewport(projectedViewport)).status, 202);
   assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...projectedViewport });
+  const focusedViewport = { ...projectedViewport, editorBottom: 380, composerTop: 298, composerBottom: 390,
+    draftScroll: 29, editorScroll: 7, sendTop: 336, sendHit: 1,
+    touchSequence: 1, touchScreenClientY: 100, touchPageClientY: 294 };
+  assert.equal((await postViewport(focusedViewport)).status, 202);
+  assert.deepEqual(diagnostics.at(-1), { serverProtocolVersion: 2, event: "client-viewport", ...focusedViewport });
   const missingRequiredViewport = { ...projectedViewport }; delete missingRequiredViewport.visualHeight;
   for (const invalid of [missingRequiredViewport, { ...projectedViewport, cssTop: 1e9 },
-    { ...projectedViewport, bodyTop: "private" }, { ...viewport, text: "private" }, { ...viewport, route: "/private" },
+    { ...projectedViewport, bodyTop: "private" }, { ...focusedViewport, touchScreenClientY: "private" },
+    { ...focusedViewport, touchPageClientY: 1e9 }, { ...viewport, text: "private" }, { ...viewport, route: "/private" },
     { ...viewport, sourceRevision: "private" }, { ...viewport, editorTop: "private" },
     { ...viewport, shellTop: null }, { ...viewport, scale: 0 }, { ...viewport, shellTop: 1e9 }]) {
     assert.equal((await postViewport(invalid)).status, 400, "Viewport diagnostics accept bounded geometry only");

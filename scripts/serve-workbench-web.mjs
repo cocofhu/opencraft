@@ -223,7 +223,7 @@ function validRecoveryDiagnostic(report) {
 }
 
 const viewportGeometryKeys = new Set(["layoutHeight", "layoutWidth", "visualHeight", "visualWidth", "visualTop", "visualLeft", "pageTop", "scrollY", "scale", "shellTop", "shellHeight", "editorTop", "sendBottom", "editing"]);
-const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight", "fixedTop", "fixedLeft"]);
+const viewportOptionalGeometryKeys = new Set(["cssTop", "cssHeight", "clientHeight", "rootTop", "rootHeight", "bodyTop", "bodyHeight", "fixedTop", "fixedLeft", "editorBottom", "composerTop", "composerBottom", "draftScroll", "editorScroll", "sendTop", "sendHit", "touchSequence", "touchScreenClientY", "touchPageClientY", "editorMinTop", "editorMaxTop", "shellMinTop", "shellMaxTop", "observedSamples"]);
 function validViewportDiagnostic(report) {
   return report?.kind === "viewport"
     && typeof report.episode === "string" && /^viewport-[a-z0-9]{1,20}$/.test(report.episode)
@@ -511,7 +511,7 @@ export async function createWorkbenchWebServer({
           return;
         }
         let report;
-        try { report = await readJsonBody(request, 1024); }
+        try { report = await readJsonBody(request, 2048); }
         catch {
           sendJson(response, 400, { ok: false, error: "Invalid App Host diagnostic" });
           return;

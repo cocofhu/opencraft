@@ -1903,3 +1903,14 @@ For that observed client frame, the Shell begins at zero and the send action
 must fit within [0, 394]. An extra offset subtraction conceals double native-pan
 compensation. Controlled browser geometry remains distinct from physical UIKit
 painting; synthetic passing results do not establish device acceptance.
+
+
+Keyboard diagnostics observe focused-Composer geometry, its local scrollport and
+actual send hit target, rather than the first potentially parked submit button.
+Capture-phase focus/touch/scroll and native viewport events open a bounded
+read-only animation-frame observation window independent of port publication.
+Brief editor/Shell position extrema survive the eight-per-second traffic budget;
+touch screen/client and page/client differences remain separate numeric
+observations. Reports contain no content or route, never drive layout, and all
+listeners/frames are released with the host. These measurements do not establish
+physical compositor painting or device acceptance.
