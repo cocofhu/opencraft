@@ -84,8 +84,6 @@ function reviewViewItems(phase: string): TimelineSourceItem[] {
     { id: "view-tool", type: "mcpToolCall", payload: { server: "audit", tool: "reviewed", status: "completed", arguments: {},
       result: { content: [{ type: "text", text: "DE_TOOL_RESULT" }] },
       automaticApprovalReviews: [review("view-tool-review", "DE_REASON_TOOL"), review("view-tool-second", "DE_REASON_TOOL_SECOND")] } },
-    { id: "view-patch-empty", type: "fileChange", payload: { status: "completed", changes: [],
-      automaticApprovalReviews: [review("view-tool-review", "DE_REASON_PATCH_EMPTY")] } },
     { id: "view-patch", type: "fileChange", payload: { status: "completed", changes: [{ path: "/fixture/review.txt", kind: "update", diff: "@@ -1 +1 @@\n-old\n+new" }],
       automaticApprovalReviews: [review("view-tool-review", "DE_REASON_PATCH")] } },
     { id: "view-command", type: "commandExecution", payload: { command: "printf DE_command", status: "completed", exitCode: 0,

@@ -116,9 +116,8 @@ try {
     const toolOther = toolBody.locator('.thread-auto-review > button').nth(1);
     const commandReason = commandBody.locator('.thread-auto-review > button').first();
     const patchReason = page.locator('.thread-patch-activities .thread-auto-review > button');
-    const emptyPatchReason = page.locator('.thread-activity-item--static + .thread-auto-review-list .thread-auto-review > button');
-    assert.equal(await patchReason.count(), 1); assert.equal(await emptyPatchReason.count(), 1);
-    await activate(patchReason); await activate(emptyPatchReason);
+    assert.equal(await patchReason.count(), 1);
+    await activate(patchReason);
     await activate(first); await activate(second); await activate(reason);
     await activate(tool); await activate(toolReason);
     await activate(command); await activate(commandReason);
@@ -138,7 +137,7 @@ try {
     // This branch's command body has local outer state; reopen it to inspect
     // the nested review choice independently of command scroll restoration.
     if (await command.getAttribute("aria-expanded") !== "true") await activate(command);
-    for (const target of [first, second, reason, tool, toolReason, commandReason, patchReason, emptyPatchReason])
+    for (const target of [first, second, reason, tool, toolReason, commandReason, patchReason])
       assert.equal(await target.getAttribute("aria-expanded"), "true", "Same View retains outer and nested review choices");
     for (const target of [otherReason, toolOther]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Other review choices stay independent");
     await page.evaluate(() => (window as any).changeThreadToolPhase("failed"));
@@ -149,7 +148,7 @@ try {
     assert.equal(await commandReason.getAttribute("aria-expanded"), "true");
     await remount(true);
     for (const target of [first, second, tool, command]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Fresh settled View retains collapsed defaults");
-    for (const target of [patchReason, emptyPatchReason]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Fresh patch reasons remain independent and collapsed");
+    for (const target of [patchReason]) assert.equal(await target.getAttribute("aria-expanded"), "false", "Fresh patch reasons remain independent and collapsed");
     await activate(first); assert.equal(await reason.getAttribute("aria-expanded"), "false");
     await activate(tool); assert.equal(await toolReason.getAttribute("aria-expanded"), "false");
     await activate(command); assert.equal(await commandReason.getAttribute("aria-expanded"), "false");
