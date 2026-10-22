@@ -154,6 +154,7 @@ import {
   useRootComposerController,
   useThreadCatalog,
   useMultiHostThreadCatalog,
+  useThreadPinWriter,
 } from "./runtime/appserver-runtime-context";
 import {
   setAppearanceThemeId,
@@ -381,8 +382,16 @@ export function App({
     },
     [runtime, snapshot.hostId, hostCatalog.agentRuntimes],
   );
-  const catalog = useThreadCatalog();
-  const multiHostCatalog = useMultiHostThreadCatalog();
+  const rawCatalog = useThreadCatalog();
+  const rawMultiHostCatalog = useMultiHostThreadCatalog();
+  const threadPinWriter = useThreadPinWriter();
+  const pinRevision = useSyncExternalStore(threadPinWriter.subscribe, threadPinWriter.getSnapshot, threadPinWriter.getSnapshot);
+  const catalog = { ...rawCatalog, threads: useMemo(() => rawCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: snapshot.hostId, threadId: thread.id }, thread)),
+  [rawCatalog.threads, threadPinWriter, pinRevision, snapshot.hostId, snapshot.connectionGeneration, snapshot.phase]) };
+  const multiHostCatalog = { ...rawMultiHostCatalog, threads: useMemo(() => rawMultiHostCatalog.threads.map(thread =>
+    threadPinWriter.project({ hostId: thread.connectionHostId, threadId: thread.id }, thread)),
+  [rawMultiHostCatalog.threads, threadPinWriter, pinRevision]) };
   const projectCatalog = useProjectCatalog();
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
   const { sidebarOpen, setSidebarOpen } = useResponsiveSidebarDock();
@@ -1347,11 +1356,10 @@ export function App({
         if (activeThreadId === threadId) navigateToHome();
       },
       setThreadPinned: async (threadId, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(embedded.hostId, threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", embedded.hostId, "threads"] }); }
+        await threadPinWriter.set({ hostId: embedded.hostId, threadId }, pinned);
       },
     });
-  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, navigateToHome, queryClient, sendMessage, snapshot.phase]);
+  }, [activeThreadId, catalog.fetchNextPage, composerController, embedded, hostCatalog, threadPinWriter, navigateToHome, queryClient, sendMessage, snapshot.phase]);
   const workspaceSelectionEpoch = useRef(0);
   useLayoutEffect(() => {
     workspaceSelectionEpoch.current++;
@@ -1670,8 +1678,7 @@ export function App({
               ? title => threadTitleWriter.rename({ hostId: snapshot.hostId, threadId: activeThreadId }, title) : undefined}
             onSetPinned={hostCatalog.threadManagement.capabilities(snapshot.hostId).pin
               ? async pinned => {
-                try { await hostCatalog.threadManagement.setPinned(snapshot.hostId, activeThreadId, pinned); }
-                finally { await queryClient.invalidateQueries({ queryKey: ["appserver", snapshot.hostId, "threads"] }); }
+                await threadPinWriter.set({ hostId: snapshot.hostId, threadId: activeThreadId }, pinned);
               } : undefined}
             onArchive={hostCatalog.threadManagement.capabilities(snapshot.hostId).archive
               ? () => archiveThread({
@@ -1750,8 +1757,7 @@ export function App({
     onRetryThreadCatalogDiscovery: () => { void multiHostCatalog.retryDiscovery(); },
     threadActions: {
       onSetPinned: async (target, pinned) => {
-        try { await hostCatalog.threadManagement.setPinned(target.hostId, target.threadId, pinned); }
-        finally { await queryClient.invalidateQueries({ queryKey: ["appserver", target.hostId, "threads"] }); }
+        await threadPinWriter.set(target, pinned);
       },
       onRename: (target, title) => threadTitleWriter.rename(target, title),
       onFork: target => forkAndOpenThread({

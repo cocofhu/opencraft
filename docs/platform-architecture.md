@@ -796,6 +796,12 @@ before a write. A revoked connection cannot publish a late pin result or replay
 its write on a successor. Discovery failures remain errors, not unpin-all or
 unsupported success. Catalog notifications and connection recovery invalidate
 the same shared queries; no menu owns a polling loop or persistent pin set.
+The application paints a transient pin-intent overlay immediately, shared by
+Sidebar, conversation header and embedded session projection. It survives old
+catalog reads until acknowledgement/refresh, serializes each Thread's intents,
+rolls back a rejected latest intent, and cannot project or write through a
+replaced connection, recipe or authorization epoch. This overlay is not durable
+pin authority; successful catalog refreshes and reloads still use native metadata.
 
 The the downstream product site renders its own Agent sidebar around the embedded Workbench.
 The embedded element passes each Thread's pinned state and the current Host's

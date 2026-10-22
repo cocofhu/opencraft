@@ -49,7 +49,7 @@ export interface ThreadActionOwner {
   beginDelete(target: ThreadActionTarget): void;
   setDraft(draft: string): void;
   dismiss(): void;
-  run(target: ThreadActionTarget, operation: () => Promise<void>, action?: "fork" | "archive" | "other"): Promise<void>;
+  run(target: ThreadActionTarget, operation: () => Promise<void>, action?: "fork" | "archive" | "pin" | "other"): Promise<void>;
 }
 
 export const threadActionKey = (target: Pick<ThreadActionTarget, "hostId" | "threadId">) => `${target.hostId}:${target.threadId}`;
@@ -67,12 +67,15 @@ export function useThreadActionOwner(callbacks: ThreadActionCallbacks): ThreadAc
     if (!merged.busy && !merged.forking) next.delete(key); else next.set(key, merged);
     return next;
   });
-  const run = async (target: ThreadActionTarget, operation: () => Promise<void>, action: "fork" | "archive" | "other" = "other") => {
+  const run = async (target: ThreadActionTarget, operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "other" = "other") => {
     const key = threadActionKey(target);
     patch(key, { busy: true, forking: action === "fork" });
     if (action === "archive") notices.loading({ key: `thread-action:${key}`, detail: target.title,
       message: intl.formatMessage({ id: "chat.archive.pending", defaultMessage: "Archiving conversation…" }) });
+    if (action === "pin") notices.loading({ key: `thread-action:${key}`, detail: target.title,
+      message: intl.formatMessage({ id: "sidebar.thread.saving", defaultMessage: "Saving…" }) });
     try { await operation();
+      if (action === "pin" && mounted.current) notices.dismiss(`thread-action:${key}`);
       if (action === "archive" && mounted.current) notices.success({ key: `thread-action:${key}`, detail: target.title,
         message: intl.formatMessage({ id: "chat.archive.done", defaultMessage: "Conversation archived" }) });
       if (mounted.current) setModal(current => current && threadActionKey(current.target) === key ? null : current); }
@@ -80,7 +83,7 @@ export function useThreadActionOwner(callbacks: ThreadActionCallbacks): ThreadAc
       if (mounted.current) notices.error({ key: `thread-action:${key}`, detail: target.title,
         message: intl.formatMessage({ id: "tasks.relation.saveError", defaultMessage: "Could not confirm the change. Review the current selection and retry." }) });
     }
-    finally { if (!mounted.current && action === "archive") notices.dismiss(`thread-action:${key}`); if (mounted.current) patch(key, { busy: false, forking: false }); }
+    finally { if (!mounted.current && (action === "archive" || action === "pin")) notices.dismiss(`thread-action:${key}`); if (mounted.current) patch(key, { busy: false, forking: false }); }
   };
   return {
     callbacks, modal, run,
@@ -125,11 +128,11 @@ export function ThreadRowMenu({ activityLabelId, target, capabilities, disabled 
   const { onFork, onArchive, onSetPinned } = owner.callbacks;
   const { busy, forking } = owner.activity(target);
   const modalHandoff = useRef(false);
-  const run = (operation: () => Promise<void>, action: "fork" | "archive" | "other" = "other") => { void owner.run(target, operation, action); };
+  const run = (operation: () => Promise<void>, action: "fork" | "archive" | "pin" | "other" = "other") => { void owner.run(target, operation, action); };
   // Shared item model for both the right-click context menu and the row
   // "..." dropdown, mirroring the actions(entry).map pattern in bot-management.
   const menuItems = [
-    capabilities.pin && onSetPinned ? { key: "pin", icon: target.pinned ? PinOff : Pin, label: intl.formatMessage(target.pinned ? { id: "sidebar.thread.unpin", defaultMessage: "Unpin" } : { id: "sidebar.thread.pin", defaultMessage: "Pin" }), onSelect: () => { run(() => onSetPinned(target, target.pinned !== true)); } } : null,
+    capabilities.pin && onSetPinned ? { key: "pin", icon: target.pinned ? PinOff : Pin, label: intl.formatMessage(target.pinned ? { id: "sidebar.thread.unpin", defaultMessage: "Unpin" } : { id: "sidebar.thread.pin", defaultMessage: "Pin" }), onSelect: () => { run(() => onSetPinned(target, target.pinned !== true), "pin"); } } : null,
     capabilities.rename ? { key: "rename", icon: Pencil, label: intl.formatMessage({ id: "sidebar.thread.rename", defaultMessage: "Rename" }), onSelect: () => { modalHandoff.current = true; owner.beginRename(target); } } : null,
     capabilities.fork ? { key: "fork", icon: GitFork, label: intl.formatMessage({ id: "sidebar.thread.fork", defaultMessage: "Create branch" }), onSelect: () => { run(() => onFork(target), "fork"); } } : null,
     capabilities.archive ? { key: "archive", icon: Archive, label: intl.formatMessage({ id: "sidebar.thread.archive", defaultMessage: "Archive" }), onSelect: () => { run(() => onArchive(target), "archive"); } } : null,
