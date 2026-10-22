@@ -58,15 +58,16 @@ import{createMcpAppOwner}from'/apps/workbench-web/src/mcp-apps/owner.ts';
 import{ConversationDocumentContext}from'/apps/workbench-web/src/components/conversation/document-context.ts';
 const fixture=window.fixture={generation:1,mode:'legacy',reads:[],calls:[],messages:[],hold:false,release:null};
 const html={legacy:${JSON.stringify(legacy)},standard:${JSON.stringify(standard)},hypernode:${JSON.stringify(hypernode)},sdk:${JSON.stringify(sdkHtml)}};
-function App(){const[widgetStates]=useState(()=>new Map());const[available,setAvailable]=useState(false);const[resourceUri,setResourceUri]=useState('ui://counter/app.html');const[displayName,setDisplayName]=useState('Counter');const[mode,setMode]=useState('legacy'),[generation,setGeneration]=useState(1),[theme,setTheme]=useState('light'),[show,setShow]=useState(true);
+function App(){const[widgetStates]=useState(()=>new Map());const[fallback,setFallback]=useState(false);const[available,setAvailable]=useState(false);const[resourceUri,setResourceUri]=useState('ui://counter/app.html');const[displayName,setDisplayName]=useState('Counter');const[mode,setMode]=useState('legacy'),[generation,setGeneration]=useState(1),[theme,setTheme]=useState('light'),[show,setShow]=useState(true);
 const port=useMemo(()=>createMcpAppOwner({key:'host:thread:'+generation,threadId:'thread',widgetStateStore:{scope:'host:thread',entries:widgetStates},assertCurrent:()=>{if(fixture.generation!==generation)throw Error('stale owner')},request:async(method,params)=>{
 if(method==='mcpServer/resource/read'){fixture.reads.push(params);if(fixture.holdResource)await new Promise(resolve=>{fixture.releaseResource=resolve});return{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:html[mode].replaceAll('__SDK_ORIGIN__',location.origin),_meta:mode==='sdk'?{ui:{csp:{resourceDomains:[location.origin]}}}:undefined}]}}
 if(method==='mcpServerStatus/list')return{data:[{name:'counter',tools:Object.fromEntries(['increment','appBuilder.list','appBuilder.saveDraft','appBuilder.publish','appBuilder.read'].map(name=>[name,{name,inputSchema:{type:'object'}}]))}],nextCursor:null};
 if(method==='mcpServer/tool/call'){fixture.calls.push(params);if(params.tool==='appBuilder.list')return{content:[],structuredContent:{apps:[]}};if(params.tool==='appBuilder.saveDraft')return{content:[],structuredContent:{appId:params.arguments.spec.appId}};if(fixture.hold)await new Promise(resolve=>{fixture.release=resolve});return{content:[],structuredContent:{count:params.arguments.amount},_meta:{private:'for UI'}}}throw Error(method)
 },sendMessage:async text=>{fixture.messages.push(text)},openLink:url=>fixture.messages.push(url)}),[mode,generation]);
-Object.assign(fixture,{setAvailable,setTheme,setResourceUri,setDisplayName,switchMode:value=>{fixture.mode=value;setMode(value)},revoke:()=>{fixture.generation++;setGeneration(fixture.generation)},hide:value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:value?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},unmount:()=>setShow(false),mount:()=>setShow(true),port});
+const surfacePort=useMemo(()=>fallback?{...port,widgetState:undefined}:port,[port,fallback]);
+Object.assign(fixture,{setFallback,setAvailable,setTheme,setResourceUri,setDisplayName,switchMode:value=>{fixture.mode=value;setMode(value)},revoke:()=>{fixture.generation++;setGeneration(fixture.generation)},hide:value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:value?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},unmount:()=>setShow(false),mount:()=>setShow(true),port});
 const timeline=useMemo(()=>projectTimeline({key:createConversationKey('host','thread'),revision:1,authoritative:true,phase:'live',turns:[{id:'turn',status:'complete',items:[{id:'question',type:'userMessage',payload:{content:[{type:'text',text:'Show a counter'}]}},{id:'call1',type:'mcpToolCall',payload:{server:'counter',tool:'Counter',status:'completed',mcpAppResourceUri:resourceUri,appContext:{appName:displayName},arguments:{count:0},result:{content:[],structuredContent:{count:0},_meta:{private:'initial'}}}},{id:'ordinary',type:'mcpToolCall',payload:{server:'counter',tool:'plain_tool',status:'completed',result:{content:[{type:'text',text:'Plain MCP output'}]}}},{id:'answer',type:'agentMessage',payload:{text:'Use the app above.',phase:'final_answer'}}]}]},projectors),[mode,resourceUri,displayName]);
-return <><input aria-label='Draft' defaultValue='Keep my draft'/>{show?<div style={{height:'80vh'}}><TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><Conversation key={mode} timeline={timeline} scrollPolicy='natural' documentContext={{conversationId:'thread',cwd:null,hostId:'host',theme,mcpApps:available?port:undefined}}/></TimelineBlockRendererProvider></div>:null}<div style={{height:2000}}/></>}
+return <><input aria-label='Draft' defaultValue='Keep my draft'/>{show?<div style={{height:'80vh'}}><TimelineBlockRendererProvider registry={ctx.timelineBlockRenderers}><Conversation key={mode} timeline={timeline} scrollPolicy='natural' documentContext={{conversationId:'thread',cwd:null,hostId:'host',theme,mcpApps:available?surfacePort:undefined}}/></TimelineBlockRendererProvider></div>:null}<div style={{height:2000}}/></>}
 
 createIntlTestRoot(document.getElementById('root')).render(<App/>);`;
 const vite = await createServer({ configFile: "apps/workbench-web/vite.config.ts", root: process.cwd(), logLevel: "error",
@@ -263,6 +264,56 @@ try {
     await page.evaluate(()=>window.fixture.unmount()); assert.equal(await page.locator("iframe").count(),0);
     assert.deepEqual(errors,[]);
     results.push({width,legacy:true,standard:true,isolated:true,sourceForgeryBlocked:true,themeWithoutReload:true,stateRetained:true,wholeRowStateRetained:true,replacementLeaseStateRetained:true,manualPauseRetained:true,pauseIdentityIsolated:true,activeResourceIdentityIsolated:true,displayNameStable:true,lateResourceReleased:true,hiddenReleased:true,unmounted:true,calls:rpc.length,pageerrors:errors,hypernodeBuilder:!!hypernode,officialSdk:!!sdkBundle,protocolErrors,production:!!productionServer,cspBlocked:true,staleGenerationReleased:true,navigationRevoked:true,viewportHeightSettled:viewportHeight,containerResize:true,narrowWidth,resizeEvents});
+    await context.close();
+  }
+  for (const width of [390,1280]) {
+    const context = await browser.newContext({viewport:{width,height:844},hasTouch:width===390});
+    const page = await context.newPage(); const errors: string[] = [];
+    page.on("pageerror",error=>errors.push(error.message));
+    await page.goto(base+(productionServer?"index.html":"mcp-app-fixture"));
+    await page.waitForFunction(()=>window.fixture?.setAvailable);
+    await page.evaluate(()=>{window.fixture.setFallback(true);window.fixture.setAvailable(true)});
+    const app=page.frameLocator("iframe");
+    const activate=(target:any)=>width===390?target.tap():target.click();
+    await app.locator("#result").filter({hasText:'"count":2'}).waitFor();
+    await page.evaluate(()=>{
+      window.fixture.widgetSaves=[];
+      window.addEventListener("message",event=>{
+        if(event.data?.method==="opencraft/widget-state")window.fixture.widgetSaves.push(event.data.params.state);
+      });
+    });
+    await activate(app.locator("#state"));
+    await page.waitForFunction(()=>window.fixture.widgetSaves.length===1);
+    assert.deepEqual(await page.evaluate(()=>window.fixture.widgetSaves),[{selected:9}]);
+    await activate(page.getByRole("button",{name:"Pause app"}));
+    assert.equal(await page.locator("iframe").count(),0);
+    await page.evaluate(()=>window.fixture.setResourceUri("ui://counter/other.html"));
+    await app.locator("#theme").filter({hasText:"state=null"}).waitFor();
+    assert.equal(await page.getByRole("button",{name:"Open app"}).count(),0,"A new resource cannot inherit fallback manual pause");
+    assert.equal(await app.locator("body").evaluate(()=>window.openai.widgetState),null,"A new resource cannot inherit another App's fallback JSON");
+    const alternateFrame=await page.locator("iframe").elementHandle();
+    const beforeReturn=await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length}));
+    await page.evaluate(()=>window.fixture.setResourceUri("ui://counter/app.html"));
+    await page.getByRole("button",{name:"Open app"}).waitFor();
+    assert.equal(await page.locator("iframe").count(),0,"Returning to an original fallback identity retains its own pause");
+    assert.equal(await alternateFrame!.evaluate(element=>element.isConnected),false);
+    assert.deepEqual(await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length})),beforeReturn);
+    await activate(page.getByRole("button",{name:"Open app"}));
+    await app.locator("#theme").filter({hasText:'state={"selected":9}'}).waitFor();
+    const originalFrame=await page.locator("iframe").elementHandle();
+    const beforeRename=await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length}));
+    await page.evaluate(()=>window.fixture.setDisplayName("Renamed fallback App"));
+    await page.locator(".mcp-app__header span").filter({hasText:"Renamed fallback App"}).waitFor();
+    assert.equal(await originalFrame!.evaluate(element=>element.isConnected),true,"Fallback display names retain the current document");
+    assert.deepEqual(await page.evaluate(()=>({reads:window.fixture.reads.length,calls:window.fixture.calls.length})),beforeRename);
+    await page.screenshot({path:output+`/fallback-restored-${width}.png`});
+    await page.evaluate(()=>window.fixture.revoke());
+    await app.locator("#theme").filter({hasText:"state=null"}).waitFor();
+    assert.equal(await originalFrame!.evaluate(element=>element.isConnected),false,"A different port key replaces the fallback document");
+    assert.equal(await page.getByRole("textbox",{name:"Draft"}).inputValue(),"Keep my draft");
+    assert.deepEqual(await page.evaluate(()=>window.fixture.messages),[]);
+    assert.deepEqual(errors,[]);
+    results.push({width,fallbackStore:true,resourceJsonIsolated:true,manualPauseIsolated:true,originalIdentityRestored:true,displayNameStable:true,newPortFresh:true,pageerrors:errors});
     await context.close();
   }
   await writeFile(output+"/result.json",JSON.stringify(results,null,2));

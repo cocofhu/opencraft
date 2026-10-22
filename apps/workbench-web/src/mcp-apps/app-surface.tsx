@@ -101,7 +101,7 @@ function LiveApp({ port, identity, block, theme, locale, state, onHeight }: {
 export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const doc = useContext(ConversationDocumentContext);
   const element = useRef<HTMLElement>(null);
-  const localWidgetState = useRef<McpAppWidgetState>({ current: null });
+  const [localWidgetStates] = useState(() => new Map<string, McpAppWidgetState>());
   const [visible, setVisible] = useState(false);
   const [foreground, setForeground] = useState(document.visibilityState !== "hidden");
   const [attempt, setAttempt] = useState(0);
@@ -109,8 +109,17 @@ export default function McpAppSurface({ block }: { readonly block: AppBlock }) {
   const intl = useIntl();
   const identity = useMemo<McpAppIdentity>(() => ({ server: block.server ?? "", uri: block.appResourceUri ?? "", callId: block.callId,
     name: block.appName ?? block.name }), [block.server, block.appResourceUri, block.callId, block.appName, block.name]);
-  const widgetState = useMemo(() => doc.mcpApps?.widgetState?.(block.id, identity) ?? localWidgetState.current,
-    [doc.mcpApps, block.id, identity]);
+  const widgetState = useMemo(() => {
+    const ownedState = doc.mcpApps?.widgetState?.(block.id, identity);
+    if (ownedState) return ownedState;
+    const key = JSON.stringify([doc.mcpApps?.key, block.id, identity.server, identity.uri, identity.callId]);
+    let state = localWidgetStates.get(key);
+    if (!state) {
+      state = { current: null };
+      localWidgetStates.set(key, state);
+    }
+    return state;
+  }, [doc.mcpApps, block.id, identity, localWidgetStates]);
   const [pauseChoice, setPauseChoice] = useState(() => ({ state: widgetState, paused: widgetState.pausedByUser === true }));
   // A new App identity reads its own intent before an iframe can mount.
   const paused = pauseChoice.state === widgetState ? pauseChoice.paused : widgetState.pausedByUser === true;

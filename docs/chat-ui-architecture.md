@@ -2386,7 +2386,12 @@ A different server, resource URI, call or source block starts a new document. Th
 old iframe and bridge dispose before loading its replacement; resource, error,
 token and navigation-load state belong to that document alone. Late resource
 results cannot revive it. A display-name update keeps the existing document.
-Without an owner-provided store, the surface uses the same typed cell locally.
+Without an owner-provided store, the surface keeps separate local cells by port
+key, source block, server, resource URI and call ID. Saved JSON and manual Pause
+cannot pass to a different App; returning to the original identity in that surface
+retains its own cell. These fallback cells end when the surface unmounts, and a
+different port key starts fresh. Cross-row or connection continuity requires the
+owner-provided Application store.
 
 ### MCP approval keyboard ownership
 
