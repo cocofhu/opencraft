@@ -143,7 +143,7 @@ export function ApplicationShellRoot({
       className={["app-shell-root", className].filter(Boolean).join(" ")}
       data-selection="chrome"
       data-opencraft-window-type={windowChrome.kind}
-      data-codex-os={windowChrome.platform}
+      data-opencraft-platform={windowChrome.platform}
       data-sidebar-open={sidebarOpen}
       data-sidebar-mounted={sidebarMounted}
       data-sidebar-presentation={sidebarPresentation}

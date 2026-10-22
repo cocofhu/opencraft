@@ -143,7 +143,7 @@ export function applyWindowChromeDocumentAttributes(
     root.dataset.opencraftWindowType = snapshot.kind;
   }
   if (root.dataset.codexOs !== snapshot.platform) {
-    root.dataset.codexOs = snapshot.platform;
+    root.dataset.opencraftPlatform = snapshot.platform;
   }
 }
 

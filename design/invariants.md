@@ -1,5 +1,12 @@
 # 工作区不变量
 
+## Owned DOM projection names
+
+Shared Web chrome writes the current platform to `data-opencraft-platform`;
+`data-opencraft-os` remains the explicit platform override input. Activity glyphs
+use `data-opencraft-activity-icon`. These temporary attributes do not own
+native engine protocol, persisted identities or glyph geometry.
+
 ## Conversation model display continuity
 
 Existing conversation model and effort labels reflect its own execution or explicit draft choice before catalog hydration. Unknown settings never become a default effort. Completed model metadata may paint the matching label within one Host runtime, but cannot seed another Thread's selectable catalog or authorize submission. Historical views do not fetch new-conversation defaults.
