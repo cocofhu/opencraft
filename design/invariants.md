@@ -835,6 +835,7 @@ Sidebar Server 来源以 metadata 项目名前的7px实心圆点呈现，仅 rem
 
 - 以下可选运行位置适用于完整工作台。嵌入的 WorkbenchPresentationPolicy 固定执行目标，关闭机器管理与 runtime Host 配置；不显示 Work in/Agent/机器设置，并在 action 边界拒绝选择、配置和 retarget 写入。固定 Profile 的观测只在 Application 内存，不能打开 standalone Host catalog。
 - 机器分组只由 daemon 上报的 machineId 决定，不按 URL、域名、名称或 hostKind 推断；分组只影响呈现，不改变 Host 与 `(hostId, threadId)` 身份。机器显示名可由部署 `--machine-name` 设置，改名不改变 machineId。
+- 运行位置和机器设置优先展示部署自有 local/durable 执行端 机器，其后为 SSH、WebSocket 等外部连接，最后为云资源；各层保持原有相对顺序。排序不依赖显示名、连接状态或选中项，不改分组与选择偏好。
 - 读取机器身份不初始化引擎；未连接 Agent 的模型目录只在用户打开模型菜单时加载，加载与失败在菜单内原位反馈。
 - 新的机器、Agent、项目选择撤销旧准备；晚到结果不得覆盖较新的意图。切换机器或 Agent 只读：目录在目标 Host 存在才保留，不创建项目记录。
 - 切换运行位置保留草稿内容；暂不可用的附件原位标注，不静默删除。
