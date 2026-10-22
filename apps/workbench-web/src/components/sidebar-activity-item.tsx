@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { WorkbenchThread } from "@opencraft/workbench-runtime";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
-import { Clock, Target } from "lucide-react";
+import { ClockIcon as Clock, TargetIcon as Target, LoadingRingIcon } from "@opencraft/design-system-web/action-icons";
 
 function ThreadActivity({
   id,
@@ -38,7 +38,7 @@ function ThreadActivity({
       role={label === null ? undefined : "img"}
       aria-label={label ?? undefined}
       aria-hidden={label === null ? true : undefined}
-    />
+    >{state === "running" || state === "pending" ? <LoadingRingIcon size={14} /> : null}</span>
   );
 }
 

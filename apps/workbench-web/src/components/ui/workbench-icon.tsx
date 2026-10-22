@@ -1,14 +1,11 @@
+import React from "react";
+import type { ComponentType } from "react";
+import type { ActionIconProps } from "@opencraft/design-system-web/action-icons";
+import { ModelIcon as Brain, ModelIcon as BrainCircuit, FolderIcon as Folder, MicrophoneIcon as Mic, AddIcon as Plus, SearchIcon as Search, SettingsGearIcon as Settings, ComposeIcon as SquarePen, TerminalIcon as TerminalSquare } from "@opencraft/design-system-web/action-icons";
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import { workbenchIconMetrics } from "@opencraft/design-system/tokens";
 import { useWorkbenchPresentation } from "../../workbench-product";
-import {
-  Blocks, Brain, Palette, MessageSquare, Activity, Archive, ArrowLeft, ArrowRight, AudioLines, Bot, BrainCircuit,
-  CalendarClock, CircleHelp, Cloud, Columns3, Cpu, Database, Download, FileCode2, Folder,
-  GitBranch, Globe2, Keyboard, HardDrive, House, LayoutGrid, ListTodo, MessageCircle, RefreshCw,
-  MessagesSquare, Mic, Monitor, PanelLeft, PanelLeftClose, Plug,
-  Plus, Search, Server, Settings, SlidersHorizontal, Sparkles, SunMoon,
-  SquarePen, TerminalSquare, UserRound, UserRoundCog, UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { ExtensionsIcon as Blocks, PaletteIcon as Palette, MessageIcon as MessageSquare, PulseIcon as Activity, ArchiveIcon as Archive, ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, AudioIcon as AudioLines, AgentIcon as Bot, CalendarIcon as CalendarClock, HelpIcon as CircleHelp, CloudIcon as Cloud, ColumnsIcon as Columns3, CpuIcon as Cpu, DatabaseIcon as Database, CodeFileIcon as Download, FileCode2, BranchIcon as GitBranch, GlobeIcon as Globe2, KeyboardIcon as Keyboard, DriveIcon as HardDrive, HomeIcon as House, GridIcon as LayoutGrid, TasksIcon as ListTodo, ChatIcon as MessageCircle, RefreshCw, CollaborationIcon as MessagesSquare, MonitorIcon as Monitor, SidebarLayoutIcon as PanelLeft, SidebarCollapseLayoutIcon as PanelLeftClose, PlugIcon as Plug, ServerIcon as Server, SlidersIcon as SlidersHorizontal, SparklesIcon as Sparkles, AppearanceIcon as SunMoon, PersonIcon as UserRound, PersonSettingsIcon as UserRoundCog, PeopleIcon as UsersRound } from "@opencraft/design-system-web/action-icons";
 
 /** Wire names stay semantic. Only this Web adapter selects the artwork. */
 export const workbenchIconRegistry = {
@@ -24,14 +21,14 @@ export const workbenchIconRegistry = {
   sliders: SlidersHorizontal, sparkles: Sparkles, start: SquarePen, updates: Download, download: Download,
   tasks: ListTodo, terminal: TerminalSquare, user: UserRound,
   "user-round": UserRound, "user-round-cog": UserRoundCog, users: UsersRound,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, ComponentType<ActionIconProps>>;
 
 export type WorkbenchIconName = keyof typeof workbenchIconRegistry;
 
 export type WorkbenchIconPurpose = "navigation" | "settings" | "settings-page" | "panel" | "work";
 const legacyIconOverrides = { chat: MessageSquare, appearance: Palette, brain: Brain };
 /** Presentation may select classic artwork, but registered contribution names remain authoritative. */
-export function resolveWorkbenchIcon(name: string | undefined, classic: boolean, purpose: WorkbenchIconPurpose = "settings") {
+export function resolveWorkbenchIcon(name: string | undefined, classic: boolean, purpose: WorkbenchIconPurpose = "settings"): ComponentType<ActionIconProps> {
   if (classic && purpose === "panel" && !["chat", "terminal", "browser", "desktop"].includes(name ?? "")) return Plus;
   if (classic && purpose === "work") return name === "sparkles" ? Sparkles : Cloud;
   if (classic && name && Object.hasOwn(legacyIconOverrides, name)) return legacyIconOverrides[name as keyof typeof legacyIconOverrides];
@@ -50,6 +47,7 @@ export function WorkbenchIcon({ name, size, purpose = "settings", className }: {
   readonly className?: string;
 }) {
   const classic = useWorkbenchPresentation().iconStyle === "classic";
+  if (name === "settings") return <SettingsGearIcon size={size ?? workbenchIconSize(classic, purpose)} className={className} data-workbench-icon="settings" />;
   const Icon = resolveWorkbenchIcon(name, classic, purpose);
   const stroke = !classic && purpose === "navigation" ? workbenchIconMetrics.coreNavigation.stroke
     : (classic ? workbenchIconMetrics.classic : workbenchIconMetrics.core).stroke;

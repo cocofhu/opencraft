@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { SparklesIcon as Sparkles } from "@opencraft/design-system-web/action-icons";
 
 /** Only explicit web/image metadata is displayable; never reinterpret a Host path as a client file. */
 export function skillIconUrl(value: unknown): string | null {

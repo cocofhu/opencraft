@@ -485,7 +485,7 @@
   @include type.role(metadata);
   color: var(--color-text-secondary);
 }
-.tasks-priority { white-space: nowrap; }
+.tasks-priority { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .tasks-priority--urgent, .tasks-due--overdue { color: var(--color-text-danger); }
 .tasks-priority--high { color: var(--color-text); }
 .tasks-due { white-space: nowrap; }
@@ -499,7 +499,11 @@
 .tasks-members {
   @include type.role(metadata);
   color: var(--color-text-secondary);
-  summary { cursor: pointer; padding-block: 4px; }
+  summary { cursor: pointer; padding-block: 4px; display: flex; align-items: center; list-style: none;
+    > svg { flex: none; margin-inline-end: 6px; }
+    &::-webkit-details-marker { display: none; }
+  }
+  &[open] > summary > svg { transform: rotate(90deg); }
   label { margin-block: 10px; }
   p { @include type.role(metadata); }
 }
@@ -586,8 +590,8 @@
     > .settings-control-select-shell, > .settings-control-input { flex: 0 1 65%; width: 65%; min-width: 0; }
   }
   .tasks-editor__properties .tasks-editor__fields { gap: 8px; }
-  .tasks-members summary { display: flex; align-items: center; min-height: 44px; padding: 0; &::before { content: "+"; margin-inline-end: 6px; } }
-  .tasks-members[open] summary::before { content: "−"; }
+  .tasks-members summary { display: flex; align-items: center; min-height: 44px; padding: 0; > svg { flex: none; margin-inline-end: 6px; } }
+  .tasks-members[open] > summary > svg { transform: rotate(90deg); }
   .tasks-editor__fields > .settings-control-button { align-self: flex-start; }
   .tasks-editor__conversations { padding-top: 16px; gap: 12px; }
   .tasks-editor__actions { padding-top: 8px; margin-top: 8px; }

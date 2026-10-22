@@ -1,5 +1,6 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { canHandleWorkbenchShortcut, matchesWorkbenchShortcut } from "../workbench-shortcuts";
-import { Search } from "lucide-react";
+
 import { NavigationIcon } from "./shell-navigation/navigation-action";
 import { focusChromeAction } from "../chrome-actions/use-chrome-action-focus";
 // OpenCraft services/scope policy and Viewport/Frame ownership. Geometry does not reuse animation aperture width

@@ -398,13 +398,28 @@ loaded board. Background refresh, failure and view re-entry retain the last
 successful snapshot, mounted cards, scroll and drafts. No artificial delay,
 placeholder records, storage migration or additional persistent cache is needed.
 
-Conversation row actions share the same Lucide SVG icons in right-click and More
-menus: Pin/PinOff, Pencil, GitFork, Archive and Trash2 at 16px, inheriting the
+Conversation row actions share the same semantic SVG icons in right-click and More
+menus: pin/unpin, edit, fork, archive and delete at 16px, inheriting the
 menu text color and existing icon spacing. Display-mode and filter rows retain
 their reserved check-indicator column; action icons do not replace selection state.
 
 
 ### Contributed navigation icons
+
+Common action artwork is owned by `design-system-web/action-icons`, including
+close/add/check, edit/delete/copy, menu chevrons and more, loading and distinct
+reset/refresh/rotate/replay controls. Static model/search/terminal/folder glyphs
+consume the same family through the Workbench semantic registry. Supplemental
+library icons and identity artwork remain available. The Shell and navigation
+adapters retain their existing role sizes, selected fill/stroke, hit areas and
+fallback behavior; sidebar/split-toggle artwork is explicitly preserved.
+See [action artwork](../design/ui/composer-icons.md) for this shared owner and
+its reduced-motion and busy-state boundaries. The optional async-question card
+loads its component and stylesheet together on first use, within a boundary
+around that card. Question state remains above the boundary, and unrelated
+conversation content and draft/editor owners remain mounted. Its styles do not
+occupy the startup CSS budget of conversations without a question.
+
 
 Extensions declare semantic icon names for navigation and settings pages. The Web
 adapter resolves every registered name in both standard and classic presentation;

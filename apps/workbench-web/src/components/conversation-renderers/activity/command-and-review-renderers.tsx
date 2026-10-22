@@ -1,3 +1,4 @@
+import { CheckIcon as Check, ChevronRightIcon as ChevronRight, CopyIcon as Copy } from "@opencraft/design-system-web/action-icons";
 import {
   formatAutomaticApprovalReviewSummary,
   formatAutomaticApprovalReviewTitle,
@@ -20,7 +21,7 @@ import {
   writeToClipboard,
 } from "@opencraft/chat-render-web";
 import { useIntl } from "@opencraft/i18n/react";
-import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
+import { AlertIcon as AlertCircle, ThinkingActivityIcon as Brain, ReviewShieldIcon } from "@opencraft/design-system-web/action-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
@@ -64,9 +65,9 @@ export function ReasoningBlock({ block, presentation, active = block.streaming, 
   </div>;
 }
 
-/** Generic shield and terminal assembled from the project's licensed Lucide primitives. */
+/** Review artwork shares the shield and terminal language; the review owner supplies status. */
 export function AutomaticApprovalReviewIcon() {
-  return <Shield aria-hidden="true"><Terminal x={6} y={6} width={12} height={12} strokeWidth={2} /></Shield>;
+  return <ReviewShieldIcon aria-hidden="true" />;
 }
 
 function ReviewAssessment({ review }: { readonly review: AutomaticApprovalReview }) {

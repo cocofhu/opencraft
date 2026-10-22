@@ -1,6 +1,7 @@
+import { SettingsGearIcon } from "@opencraft/design-system-web/action-icons";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useIntl } from "@opencraft/i18n/react";
-import { ArrowUpRight, Settings } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useState } from "react";
 import { AccountLeadingVisual, shellAccountEntranceLabel, type ShellAccount, type ShellSignIn } from "./navigation-content";
 
@@ -43,7 +44,7 @@ export function AccountSignInMenu({ account, signIn, id, visible, container, onO
           setOpen(false);
           onOpenSettings();
         }}>
-          <Settings aria-hidden="true" size={16} /><span>设置</span>
+          <SettingsGearIcon aria-hidden="true" size={16} /><span>设置</span>
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

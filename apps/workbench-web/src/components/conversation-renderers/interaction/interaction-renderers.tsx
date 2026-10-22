@@ -1,3 +1,5 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, SearchIcon as Search, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { NativeSelect } from "@opencraft/design-system-web/native-controls";
 import {
   aggregateUserInputQuestionAnswers,
   selectUserInputQuestionOption,
@@ -21,18 +23,7 @@ import {
   setupTaskOptions,
   type SetupContextSource,
 } from "@opencraft/workbench-runtime";
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Globe2,
-  MessageSquare,
-  Search,
-  Wrench,
-  X,
-} from "lucide-react";
+import { AlertIcon as AlertCircle, GlobeIcon as Globe2, MessageIcon as MessageSquare, ToolIcon as Wrench } from "@opencraft/design-system-web/action-icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   useCallback,
@@ -735,12 +726,13 @@ function McpFormElicitationBlock({ block }: { block: Extract<TimelineBlock, { ty
           <span><b>{field.title}</b>{field.required ? <i>Required</i> : null}</span>
           {field.description ? <small>{field.description}</small> : null}
           {field.kind === "boolean" ? <button aria-pressed={draft[field.name] === true} onClick={() => update(field.name, draft[field.name] !== true)} type="button"><span>{draft[field.name] === true ? "Enabled" : "Disabled"}</span><Check size={14} /></button>
-            : field.kind === "select" ? <select onChange={(event) => update(field.name, event.target.value)} value={elicitationDraftText(draft[field.name])}>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+            : field.kind === "select" ? <NativeSelect onChange={(event) => update(field.name, event.target.value)} value={elicitationDraftText(draft[field.name])}>{field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</NativeSelect>
             : field.kind === "multi-select" ? <div className="thread-elicitation__checks">{field.options.map((option) => {
                 const values = Array.isArray(draft[field.name]) ? draft[field.name] as readonly string[] : [];
                 return <label key={option.value}><input checked={values.includes(option.value)} onChange={() => update(field.name, values.includes(option.value) ? values.filter((value) => value !== option.value) : [...values, option.value])} type="checkbox" />{option.label}</label>;
               })}</div>
             : <input
+                className={field.kind === "number" ? "ui-native-number" : undefined}
                 max={field.maximum ?? undefined}
                 maxLength={field.maxLength ?? undefined}
                 min={field.minimum ?? undefined}

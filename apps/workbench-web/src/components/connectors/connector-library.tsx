@@ -1,5 +1,6 @@
+import { CheckIcon as Check, AddIcon as Plus, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowUpRight, Check, Plus, Search } from "lucide-react";
+import { ArrowUpRightIcon as ArrowUpRight } from "@opencraft/design-system-web/action-icons";
 import { CONNECTOR_CATALOG, connectorDefinition, type ConnectorInstance } from "@opencraft/connector-core";
 import { connectorErrorMessage, type ConnectorOperation, type ConnectorManager } from "@opencraft/workbench-runtime";
 import { SegmentedControl, SettingsNotice, SettingsSelect, SettingsTextInput } from "@opencraft/extension-react";

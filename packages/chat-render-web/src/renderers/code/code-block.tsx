@@ -1,3 +1,4 @@
+import { CopyIcon, CheckIcon, WrapTextIcon } from "@opencraft/design-system-web/action-icons";
 import type { ChatNodeRendererProps } from "@opencraft/chat-render-react";
 import {
   useEffect,
@@ -52,12 +53,7 @@ function svgPreviewSource(
 }
 
 function CopyGlyph({ copied }: { readonly copied: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={copied ? "chat-code-action__check" : "chat-code-action__copy"}
-    />
-  );
+  return copied ? <CheckIcon size={16} /> : <CopyIcon size={16} />;
 }
 
 export function CodeBlockSurface({
@@ -139,7 +135,7 @@ export function CodeBlockSurface({
                 title={wrapPreference ? "Disable word wrap" : "Enable word wrap"}
                 type="button"
               >
-                <span aria-hidden>↵</span>
+                <WrapTextIcon size={16} />
               </button>
             ) : null}
             {!open ? (

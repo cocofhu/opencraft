@@ -1,5 +1,5 @@
 import { SIDE_CHAT_COMPOSER_COMMAND, runSideChatComposerCommand } from "./panels/side-chat-composer-command";
-import { Monitor } from "lucide-react";
+import { MonitorIcon as Monitor } from "@opencraft/design-system-web/action-icons";
 import type { ConversationPresentationProvider } from "./runtime/conversation-presentation";
 import { useConversationHistoryRefresh } from "./components/conversation-history-refresh";
 import { createMcpAppOwner } from "./mcp-apps/owner";

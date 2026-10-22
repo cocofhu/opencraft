@@ -1,3 +1,6 @@
+import { UrgentPriorityIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon } from "@opencraft/design-system-web/action-icons";
+import { ChevronRightIcon } from "@opencraft/design-system-web/action-icons";
+import { AddIcon as Plus, DeleteIcon as Trash2, CloseIcon as X, EditIcon as Pencil, MoreIcon as MoreHorizontal, RefreshIcon as RefreshCw } from "@opencraft/design-system-web/action-icons";
 import {
   lazy,
   Suspense,
@@ -13,7 +16,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Popover from "@radix-ui/react-popover";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ChartNoAxesCombined, Sunrise, Columns3, List, Plus, SlidersHorizontal, Trash2, X, Pencil, MessageSquare, ArrowUpRight, MoreHorizontal, UserRound, RefreshCw, ArrowLeft, Archive, ArchiveRestore } from "lucide-react";
+import { ChartIcon as ChartNoAxesCombined, Sunrise, ColumnsIcon as Columns3, ListIcon as List, SlidersIcon as SlidersHorizontal, MessageIcon as MessageSquare, ArrowUpRightIcon as ArrowUpRight, PersonIcon as UserRound, ArrowLeftIcon as ArrowLeft, ArchiveIcon as Archive, RestoreArchiveIcon as ArchiveRestore } from "@opencraft/design-system-web/action-icons";
 import type { TrustedExtensionApiV1 } from "@opencraft/extension-runtime";
 import { ownMemberId } from "./own-member";
 import { MemberAvatar } from "./member-avatar";
@@ -333,7 +336,7 @@ function TaskMeta({ task, members, compactOwner = false }: { task: TaskDetail; m
   const member = members.find(member => member.id === task.assigneeId);
   const name = member?.name ?? task.assigneeId ?? t("unassigned");
   return <div className={`tasks-meta${compactOwner ? " tasks-meta--card" : ""}`}>
-    {task.priority && task.priority !== "none" ? <span className={`tasks-priority tasks-priority--${task.priority}`} title={t("priority")}>{task.priority === "urgent" ? "‼" : task.priority === "high" ? "↑" : task.priority === "low" ? "↓" : "−"} {t(task.priority)}</span> : null}
+    {task.priority && task.priority !== "none" ? <span className={`tasks-priority tasks-priority--${task.priority}`} title={t("priority")}>{task.priority === "urgent" ? <UrgentPriorityIcon size={14} /> : task.priority === "high" ? <ArrowUpIcon size={14} /> : task.priority === "low" ? <ArrowDownIcon size={14} /> : <MinusIcon size={14} />} {t(task.priority)}</span> : null}
     {task.dueDate ? <time dateTime={task.dueDate} className={isOverdue(task) ? "tasks-due tasks-due--overdue" : "tasks-due"} title={`${t("dueDate")}: ${task.dueDate}${isOverdue(task) ? ` · ${t("overdue")}` : ""}`}>{task.dueDate.slice(5).replace("-", "/")}</time> : null}
     <span className="tasks-owner" title={`${t("assignee")}: ${name}`} role={compactOwner ? "img" : undefined} aria-label={compactOwner ? `${t("assignee")}: ${name}` : undefined}><MemberAvatar member={member} name={name} assigned={!!task.assigneeId} />{compactOwner ? null : <span className="tasks-owner__name">{name}</span>}</span>
   </div>;
@@ -497,7 +500,7 @@ function Column({
           disabled={pending}
           aria-label={`${t("add")}: ${t(status)}`}
         >
-          ＋
+          <Plus size={14} />
         </SettingsButton>
       </header>
       {children}
@@ -550,7 +553,7 @@ function MemberIdentityEditor({ member, busy, onMember }: { member: TaskMember; 
   return <details ref={details} className="tasks-members tasks-member-profile" onToggle={event => {
     if (event.currentTarget.open && !edit) setEdit({ kind: member.identity?.kind ?? "", id: member.identity?.id ?? "", revision: member.revision, name: member.name });
   }}>
-    <summary>{t("avatarProfile")} · {member.name}</summary>
+    <summary><ChevronRightIcon size={14} />{t("avatarProfile")} · {member.name}</summary>
     {edit ? <>
       {edit.revision !== member.revision ? <SettingsNotice>{t("identityChanged")} <SettingsButton type="button" disabled={busy} onClick={() => setEdit({ kind: member.identity?.kind ?? "", id: member.identity?.id ?? "", revision: member.revision, name: member.name })}>{t("latestIdentity")}</SettingsButton></SettingsNotice> : null}
       <label>{t("identityKind")}<SettingsSelect aria-label={t("identityKind")} disabled={busy} value={edit.kind} onChange={e => setEdit({ ...edit, kind: e.target.value })}>
@@ -901,7 +904,7 @@ function Editor({
             </SettingsButton>
           </SettingsNotice>
         ) : null}
-            {properties ? <details ref={memberDetails} className="tasks-members"><summary>{t("addMember")}</summary>
+            {properties ? <details ref={memberDetails} className="tasks-members"><summary><ChevronRightIcon size={14} />{t("addMember")}</summary>
               <label>{t("memberName")}<SettingsTextInput aria-label={t("memberName")} maxLength={120} value={memberName} onChange={e=>setMemberName(e.target.value)} /></label>
               <label>{t("memberId")}<SettingsTextInput aria-label={t("memberId")} maxLength={256} value={memberId} onChange={e=>setMemberId(e.target.value)} /></label>
               <p>{t("memberHint")}</p>
@@ -1643,7 +1646,7 @@ export function createTasksView(
               {state.recycled.map(task => <li key={task.id} className="tasks-recycle__row">
                 <div><strong>{task.title}</strong><div className="tasks-recycle__metadata">
                   {t(task.status)} · {t("restoreBy")} {new Date(task.deletedAt! + state.recycleBinRetentionMs!).toLocaleString()}
-                </div><details><summary>{t("description")}</summary><p className="tasks-recycle__description">{task.description}</p></details></div>
+                </div><details><summary className="ui-native-disclosure">{t("description")}</summary><p className="tasks-recycle__description">{task.description}</p></details></div>
                 <SettingsButton disabled={state.pending || state.phase !== "ready"} aria-label={`${t("restore")} ${task.title}`}
                   onClick={() => { setRestoringId(task.id); void model.mutate(TASKS.restore, { id: task.id, expectedRevision: task.revision }).finally(() => setRestoringId(null)); }}>
                   {restoringId === task.id ? t("restoring") : t("restore")}

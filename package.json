@@ -240,7 +240,10 @@
     "smoke:mcp-apps": "tsx scripts/smoke-mcp-app-host.ts",
     "smoke:host-composer-commands": "tsx scripts/smoke-host-composer-commands.ts",
     "test:react-runtime": "tsx --test tests/host-composer-commands.test.ts tests/react-runtime.test.tsx tests/react-runtime-notices.test.mjs tests/workbench-presentation-policy.test.ts tests/workbench-product-icons.test.tsx tests/workbench-navigation-icons.test.ts tests/workbench-appearance-theme.test.ts",
-    "test:extension-example": "tsx --test tests/extension-example.test.ts"
+    "test:extension-example": "tsx --test tests/extension-example.test.ts",
+    "check:icons": "tsx scripts/generate-native-control-icons.tsx --check && node scripts/check-interface-icons.mjs",
+    "smoke:control-icons": "node scripts/smoke-native-control-icons.mjs",
+    "generate:control-icons": "tsx scripts/generate-native-control-icons.tsx"
   },
   "dependencies": {
     "react": "19.3.1",

@@ -388,9 +388,9 @@ export const opencraftShadowTokens = {
 
 /** Artwork scale is a product choice, separate from color and typography. */
 export const workbenchIconMetrics = {
-  // Generic controls retain Lucide's default stroke; navigation has its own role.
+  // Shared action artwork and outline navigation use one readable stroke.
   core: { stroke: 2, navigation: 14, settings: 16, panel: 14, work: 15, chrome: 16 },
   classic: { stroke: 2, navigation: 15, settings: 16, panel: 14, work: 15, chrome: 16 },
   navigation: { stroke: 2, selectedStroke: 2.5 },
-  coreNavigation: { stroke: 1.8 },
+  coreNavigation: { stroke: 2 },
 } as const;

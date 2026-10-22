@@ -1,5 +1,6 @@
+import { ChevronDownIcon, RotateIcon as RotateCcw, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState, type RefObject, type PointerEvent } from "react";
-import { RotateCcw, X } from "lucide-react";
+
 import { browserViewportDeviceProfile, computeBrowserViewportLayout, type BrowserViewportMode } from "@opencraft/browser-core";
 import { DEVICE_PRESETS, initializeBrowserViewportPresets, clampPanelWidth__rBr_2f54e, getDefaultPanelWidth } from "./opencraft/viewport-presets.js";
 import { computeDragResizeDimensions } from "./opencraft/viewport-resize.js";
@@ -24,7 +25,7 @@ export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
   return (
     <div className="browser-device-toolbar" role="toolbar" aria-label="Device toolbar">
       <label className="browser-device-toolbar__label" htmlFor="browser-device-preset">Dimensions:</label>
-      <select id="browser-device-preset" aria-label="Device preset" value={selection} onChange={event => {
+      <span className="browser-device-toolbar__select"><select id="browser-device-preset" aria-label="Device preset" value={selection} onChange={event => {
         const preset = DEVICE_PRESETS.find(item => item.id === event.currentTarget.value);
         if (preset) {
           const dimensions = preset.id === "responsive" ? mode : preset;
@@ -34,7 +35,7 @@ export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
         event.currentTarget.blur();
       }}>
         {DEVICE_PRESETS.map(preset => <option key={preset.id} value={preset.id}>{labels[preset.id] ?? preset.id}</option>)}
-      </select>
+      </select><ChevronDownIcon size={14} /></span>
       <div className="browser-device-toolbar__dimensions">
         <DimensionInput label="Viewport width" value={mode.width} min={240} onChange={value => editDimension("width", value)}/>
         <span aria-hidden="true">×</span>
@@ -43,12 +44,12 @@ export function BrowserDeviceToolbar({mode,onChange,onClose,zoom,onZoom}:{
       <button type="button" aria-label="Rotate viewport" title="Rotate viewport" onClick={() => {
         onChange({...mode, width: mode.height, height: mode.width});
       }}><RotateCcw size={16}/></button>
-      {onZoom ? <select className="browser-device-toolbar__zoom" aria-label="Browser zoom" value={zoom} onChange={event => {
+      {onZoom ? <span className="browser-device-toolbar__select browser-device-toolbar__zoom"><select aria-label="Browser zoom" value={zoom} onChange={event => {
         onZoom(Number(event.currentTarget.value));
         event.currentTarget.blur();
       }}>
         {[50,75,100,125,150,200].map(percent => <option key={percent} value={percent}>{percent}%</option>)}
-      </select> : null}
+      </select><ChevronDownIcon size={14} /></span> : null}
       <button type="button" className="browser-device-toolbar__close" aria-label="Close device toolbar" title="Close device toolbar" onClick={onClose}><X size={14}/></button>
     </div>
   );

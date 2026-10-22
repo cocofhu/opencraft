@@ -1,3 +1,4 @@
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, FolderIcon as Folder, LoadingRingIcon as LoaderCircle, SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { ThreadGoalSurface } from "./thread-goal-surface";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FormattedMessage, useIntl } from "@opencraft/i18n/react";
@@ -26,19 +27,7 @@ import { menuGeometry } from "@opencraft/design-system/tokens";
 import { useMachineConnectionPhase } from "../runtime/appserver-runtime-context";
 import { ConnectionStatus } from "./target-connection-status";
 import { machineResourcePhaseLabel } from "./machine-resource-presentation";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  FolderPlus,
-  GitBranch,
-  Cloud,
-  Laptop,
-  Server,
-  LoaderCircle,
-  Search,
-} from "lucide-react";
+import { NewFolderIcon as FolderPlus, BranchIcon as GitBranch, CloudIcon as Cloud, LaptopIcon as Laptop, ServerIcon as Server } from "@opencraft/design-system-web/action-icons";
 import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,

@@ -1,3 +1,5 @@
+import { ReplayIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
+import { NativeSelect } from "@opencraft/design-system-web/native-controls";
 import {
   botMessageStableKey,
   botMessageText,
@@ -20,14 +22,7 @@ import { WebChatDocument, WebUserMessageDocument } from "@opencraft/chat-render-
 import { OpenCraftComposer } from "@opencraft/composer-editor";
 import { createClientId, createComposerController, type ComposerDraftStorage } from "@opencraft/composer-core";
 import type { ExtensionSettingsViewProps } from "@opencraft/extension-react";
-import {
-  ArrowDown,
-  CircleAlert,
-  Pause,
-  Play,
-  RotateCcw,
-  UsersRound,
-} from "lucide-react";
+import { ArrowDownIcon as ArrowDown, AlertIcon as CircleAlert, PauseIcon as Pause, PlayIcon as Play, PeopleIcon as UsersRound } from "@opencraft/design-system-web/action-icons";
 import {
   useCallback,
   useEffect,
@@ -380,7 +375,7 @@ function BotInteractionCard({
                   : ""}
               />
             ) : (
-              <select
+              <NativeSelect
                 disabled={busy}
                 multiple={question.multiple}
                 onChange={(event) => {
@@ -402,7 +397,7 @@ function BotInteractionCard({
                     {choice.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
           </label>
         ))}

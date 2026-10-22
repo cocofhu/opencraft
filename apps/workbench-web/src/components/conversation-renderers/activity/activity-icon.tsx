@@ -1,5 +1,5 @@
 import type { ToolActivityIcon } from "@opencraft/chat-core";
-import { Bot, ImageIcon, Monitor, Wrench } from "lucide-react";
+import { AgentIcon as Bot, ImageIcon, MonitorIcon as Monitor, ToolIcon as Wrench } from "@opencraft/design-system-web/action-icons";
 import type { ReactNode } from "react";
 
 import {
@@ -29,6 +29,6 @@ export function activityIcon(icon: ToolActivityIcon): ReactNode {
 
 /** Shared process-glyph rail. Glyph identity is supplied by the renderer; CSS
  * alone calibrates canvas padding, painted size and effective stroke. */
-export function ActivityIcon({ children }: { readonly children: ReactNode }) {
-  return <span className="thread-activity-item__icon" aria-hidden="true">{children}</span>;
+export function ActivityIcon({ children, running = false }: { readonly children: ReactNode; readonly running?: boolean }) {
+  return <span className="thread-activity-item__icon" data-running={running || undefined} aria-hidden="true">{children}</span>;
 }

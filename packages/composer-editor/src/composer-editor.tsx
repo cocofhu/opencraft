@@ -1,4 +1,6 @@
 import { ComposerModelPicker } from "./composer-model-picker";
+import { ModelIcon as BrainCircuit, CheckIcon as Check, ChevronDownIcon as ChevronDown, AttachmentIcon as Paperclip, AddIcon as Plus, CloseIcon as X } from "@opencraft/design-system-web/action-icons";
+import { LoadingRingIcon, ResetIcon, LightningIcon, PermissionDocumentIcon, PermissionShieldIcon, StopCircleIcon } from "@opencraft/design-system-web/action-icons";
 import { SessionModelPicker } from "./session-model-picker";
 import { useInputAuxiliaryMenuFocus } from "./use-input-auxiliary-menu-focus";
 import { ComposerAttachedRail } from "./attached-rail";
@@ -35,24 +37,7 @@ import {
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { reasoningCapability, resolveReasoningEffort, resolveModelSelection, composerDocumentToPlainText } from "@opencraft/composer-core";
-import {
-  ArrowUp,
-  AtSign,
-  Check,
-  ChevronDown,
-  CircleStop,
-  CircleAlert,
-  FileCode2,
-  FileText,
-  Image,
-  LoaderCircle,
-  Paperclip,
-  Plus,
-  RotateCcw,
-  ShieldCheck,
-  X,
-  Zap,
-} from "lucide-react";
+import { ArrowUpIcon as ArrowUp, AtSignIcon as AtSign, AlertIcon as CircleAlert, CodeFileIcon as FileCode2, TextFileIcon as FileText, ImageIcon as Image, SparklesIcon as Sparkles } from "@opencraft/design-system-web/action-icons";
 import {
   Fragment,
   forwardRef,
@@ -258,7 +243,7 @@ function SelectionMenuItemContent({
           className="opencraft-composer-selection-menu__trailing"
           aria-hidden="true"
         >
-          <Check size={16} strokeWidth={1.75} />
+          <Check size={16} />
         </span>
       ) : null}
     </>
@@ -267,13 +252,13 @@ function SelectionMenuItemContent({
 
 function permissionMenuLeadingIcon(mode: ComposerPermissionOption["mode"]): ReactNode {
   if (mode === "full") {
-    return <Zap size={18} strokeWidth={1.65} />;
+    return <LightningIcon size={18} />;
   }
   if (mode === "read-only") {
-    return <FileText size={18} strokeWidth={1.65} />;
+    return <PermissionDocumentIcon size={18} />;
   }
-  if (mode == null) return <ShieldCheck size={18} strokeWidth={1.65} />;
-  return <FileCode2 size={18} strokeWidth={1.65} />;
+  if (mode == null) return <PermissionShieldIcon size={18} />;
+  return <PermissionDocumentIcon size={18} editable />;
 }
 
 function formatSelectionLabel(value: string): string {
@@ -2132,14 +2117,14 @@ export const OpenCraftComposer = forwardRef<
                     : <img alt="" draggable={false} src={previewUrl} />}
                   {attachment.lifecycle === "pending" || attachment.lifecycle === "processing" || attachment.lifecycle === "uploading" ? (
                     <span aria-label={`Preparing ${attachment.name}`} className="opencraft-composer-image-attachment__status" role="status">
-                      <LoaderCircle aria-hidden="true" size={22} />
+                      <LoadingRingIcon aria-hidden="true" size={22} />
                     </span>
                   ) : null}
                   {attachment.lifecycle === "failed" ? (
                     <span className="opencraft-composer-image-attachment__status is-failed">
                       {attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
                         <button aria-label={`Retry ${attachment.name}: ${attachment.error ?? "Image preparation failed"}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)} type="button">
-                          <RotateCcw aria-hidden="true" size={20} />
+                          <ResetIcon aria-hidden="true" size={20} />
                         </button>
                       ) : <CircleAlert aria-label={attachment.error ?? "Image preparation failed"} role="img" size={20} />}
                     </span>
@@ -2167,7 +2152,7 @@ export const OpenCraftComposer = forwardRef<
                   </span>
                   <span className="opencraft-composer-attachment__actions">
                     {attachment.lifecycle === "failed" && attachmentSession.canRetry(composerSnapshot.draft.id, attachment.id) && onResolveAttachment !== undefined ? (
-                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><RotateCcw size={13} /></button>
+                      <button type="button" aria-label={`Retry ${attachment.name}`} onClick={() => attachmentSession.retry(composerSnapshot.draft.id, attachment.id, onResolveAttachment)}><ResetIcon size={13} /></button>
                     ) : null}
                     <button type="button" aria-label={`Remove ${attachment.name}`} onClick={() => removeAttachment(attachment.id)}><X size={13} /></button>
                   </span>
@@ -2250,7 +2235,7 @@ export const OpenCraftComposer = forwardRef<
                 >
                   <span>
                     {suggestion.kind === "command" ? (
-                      <Zap size={15} />
+                      <LightningIcon size={15} />
                     ) : suggestion.kind === "skill" ? (
                       <SkillIcon source={suggestion.metadata?.iconSmallUrl ?? suggestion.metadata?.iconSmall} />
                     ) : (
@@ -2304,7 +2289,7 @@ export const OpenCraftComposer = forwardRef<
                 aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                 onClick={openAttachmentPicker}
               >
-                <Plus size={16} />
+                <Plus size={20} />
               </button>
             ) : (
               <DropdownMenu.Root modal={false} open={addMenuOpen} onOpenChange={(open) => {
@@ -2317,7 +2302,7 @@ export const OpenCraftComposer = forwardRef<
                     type="button"
                     aria-label={intl.formatMessage({ id: "composer.add", defaultMessage: "Add" })}
                   >
-                    <Plus size={16} />
+                    <Plus size={20} />
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal container={portalContainer}>
@@ -2481,11 +2466,11 @@ export const OpenCraftComposer = forwardRef<
                         permissionTriggerTitle
                       }
                     >
-                      <ShieldCheck size={14} />
+                      <PermissionShieldIcon size={18} />
                       <span className="opencraft-composer-mode__permission-label">
                         {permissionSelectionLabel}
                       </span>
-                      <ChevronDown size={12} />
+                      <ChevronDown size={14} />
                     </button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal container={portalContainer}>
@@ -2597,7 +2582,7 @@ export const OpenCraftComposer = forwardRef<
                   occurredAt: Date.now(),
                 })}
               >
-                <CircleStop size={17} />
+                <StopCircleIcon size={17} />
               </button>
             ) : (
               <button

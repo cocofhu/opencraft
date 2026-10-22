@@ -1,7 +1,7 @@
 import { FilePreviewService } from "@opencraft/file-preview-web";
 import { OfficePreviewPlugin } from "@opencraft/plugin-office-preview";
 import type { Context } from "@deepseek-ai/cordis";
-import { GitBranch } from "lucide-react";
+import { BranchIcon as GitBranch } from "@opencraft/design-system-web/action-icons";
 import type { ReactNode } from "react";
 
 import { createDeferredView } from "@opencraft/extension-react";

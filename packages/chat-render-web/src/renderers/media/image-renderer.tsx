@@ -1,3 +1,4 @@
+import { CloseIcon as SharedCloseIcon, ChevronLeftIcon as SharedChevronLeftIcon, ChevronRightIcon as SharedChevronRightIcon } from "@opencraft/design-system-web/action-icons";
 import { chatMediaPresentationKey, type ChatNodeRendererProps, type ChatResourcePolicyService } from "@opencraft/chat-render-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -5,17 +6,11 @@ import { usePreviewFocusOrigin } from "../../preview-focus-origin";
 import { ZoomableImage } from "../../zoomable-image";
 import "./image.scss";
 
-function CloseGlyph() {
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m3.5 3.5 9 9m0-9-9 9" /></svg>;
-}
+function CloseGlyph() { return <SharedCloseIcon size={16} />; }
 
-function PreviousGlyph() {
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m10 3-5 5 5 5" /></svg>;
-}
+function PreviousGlyph() { return <SharedChevronLeftIcon size={16} />; }
 
-function NextGlyph() {
-  return <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" /></svg>;
-}
+function NextGlyph() { return <SharedChevronRightIcon size={16} />; }
 
 interface ImageGalleryState {
   readonly key: string;

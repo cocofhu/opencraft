@@ -2132,3 +2132,43 @@ and window resizing remain live; parking preserves the normal viewport.
 - Tool maximization/visibility animates the aperture independently of the content layout endpoint. Retain the last layout mode while closed; a new visible intent picks the endpoint immediately. Normal handle/window resizing remains live. Chrome borders follow the content mode so visibility alone cannot resize embedded pages.
 
 - Portaled browser surfaces follow Shell foreground translation after Motion DOM writes, including the terminal frame; unchanged viewport size must not suppress position updates.
+
+
+- Native control and editor icon paint: reuse the shared SVG artwork through the
+  generated native-control masks or JSX, while retaining native input events,
+  keyboard/label focus, validation, system pickers and CodeMirror command owners.
+  Forced-colors fallbacks remain accessible; retained sidebar/panel artwork and
+  collaboration numeral font are unchanged.
+
+
+- Workspace code search uses the editor's top panel slot so the existing floating
+  chat input cannot cover search options or replacement controls on narrow screens.
+  Search query, replacement, editor draft and save ownership remain unchanged.
+
+- Notification and native-selection artwork: dependency defaults are mapped to
+  shared SVG at the notification owner. Native selects keep their original
+  element, attributes and keyboard/popup behavior; multiple/size lists never gain
+  a dropdown arrow. Numeric stepper paint is opt-in where hidden spinners already
+  serve another control. Forced-colors native paint remains intentional.
+
+- Compact Chat process glyphs share `BrainArtwork`, `TerminalArtwork`,
+  `BookArtwork` and `PencilArtwork` in the existing design-system-web owner.
+  Static model/terminal/edit controls reuse these contours. One fold/seam or
+  prompt supplies recognition at rail size; no second underline or miniature
+  page/brain ornament. Artwork changes preserve process/disclosure identity,
+  running/reduced-motion semantics, rail metrics and protected layout/gear/font.
+
+### Activity detail motion
+
+Chat process motion follows actual row running state. The shared SVG base stays
+intact while a loop/page/nib detail or command cursor moves. Collapsed groups
+animate their shared header glyph; expanded groups hand motion to visible running
+rows. Summary-only exploration keeps header motion when its body has no active row.
+Completion, interruption, failure and reduced motion leave static artwork. All live
+process summaries also use the shared cadenced text sweep, alongside the glyph detail.
+Disclosure rows, summary-only rows, active group summaries and agent tool rows
+compose ActivityRowContent, the single glyph/summary paint owner. Running state
+stays outside deferred summary snapshots; callers never nest process sweeps. Settled summaries have no sweep, and reduced motion suppresses
+it through the shared stylesheet. Text/rail geometry, disclosure
+interaction and user drafts remain owned by the existing Conversation and Shell. Static controls share
+the base artwork without activity overlays.

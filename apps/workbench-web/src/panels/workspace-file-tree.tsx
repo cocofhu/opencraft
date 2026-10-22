@@ -1,7 +1,8 @@
+import { ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, FolderIcon as Folder, FolderOpenIcon as FolderOpen, LoadingRingIcon as LoaderCircle } from "@opencraft/design-system-web/action-icons";
 import type { FsReadDirectoryEntry } from "@opencraft/appserver-protocol/generated/v2";
 import type { AppServerFileSystemResourcePort } from "@opencraft/workbench-runtime";
 import { useQueries, type UseQueryResult } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Folder, FolderOpen, LoaderCircle } from "lucide-react";
+
 import { memo, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { WorkspaceFileIcon } from "./workspace-file-icon";
 import {

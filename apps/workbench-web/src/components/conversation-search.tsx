@@ -1,5 +1,6 @@
+import { SearchIcon as Search } from "@opencraft/design-system-web/action-icons";
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { MessageSquare, Search } from "lucide-react";
+import { MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import type { SidebarThread } from "./sidebar";
 import { useDismissSidebarAfterSelection } from "./shell-presentation";

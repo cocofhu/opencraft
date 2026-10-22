@@ -1,3 +1,4 @@
+import { AddIcon as Plus, TerminalIcon as TerminalSquare, CloseIcon as X, CheckIcon as Check, ChevronDownIcon as ChevronDown } from "@opencraft/design-system-web/action-icons";
 import { useWorkbenchPresentationActive } from "./workbench-presentation-activity";
 import { useIntl } from "@opencraft/i18n/react";
 import type { IntlShape } from "@opencraft/i18n";
@@ -11,20 +12,7 @@ import type {
 } from "@opencraft/workbench-panels";
 
 import type { PanelRendererRegistration } from "@opencraft/workbench-panels-react";
-import {
-  FileCode2,
-  Globe2,
-  Monitor,
-  GitBranch,
-  Maximize2,
-  Minimize2,
-  MessageSquare,
-  Plus,
-  TerminalSquare,
-  X,
-  Check,
-  ChevronDown,
-} from "lucide-react";
+import { CodeFileIcon as FileCode2, GlobeIcon as Globe2, MonitorIcon as Monitor, BranchIcon as GitBranch, ExpandIcon as Maximize2, CollapseIcon as Minimize2, MessageIcon as MessageSquare } from "@opencraft/design-system-web/action-icons";
 import {
   DndContext,
   closestCenter,

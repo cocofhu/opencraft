@@ -1,4 +1,5 @@
-import { Copy, Folder, SquareTerminal } from "lucide-react";
+import { CopyIcon as Copy, FolderIcon as Folder, TerminalIcon as SquareTerminal } from "@opencraft/design-system-web/action-icons";
+
 import { useIntl } from "@opencraft/i18n/react";
 import { SettingsCopyButton } from "@opencraft/extension-react";
 import { ModalSurface } from "./modal";

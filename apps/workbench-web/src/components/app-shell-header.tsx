@@ -1,7 +1,4 @@
-import {
-  ArrowLeft,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight } from "@opencraft/design-system-web/action-icons";
 import { motion, useTransform } from "motion/react";
 import { useIntl } from "@opencraft/i18n/react";
 import {

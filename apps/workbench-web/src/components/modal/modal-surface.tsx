@@ -1,9 +1,10 @@
+import { CloseIcon as X } from "@opencraft/design-system-web/action-icons";
 import type {
   ModalDescriptor,
   ModalDismissReason,
 } from "@opencraft/design-system/modal";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useWorkbenchPresentationRoot } from "../workbench-presentation-root";
 

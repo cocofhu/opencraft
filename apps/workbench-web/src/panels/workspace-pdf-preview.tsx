@@ -1,5 +1,6 @@
+import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, LoadingRingIcon as LoaderCircle } from "@opencraft/design-system-web/action-icons";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, LoaderCircle, ZoomIn, ZoomOut } from "lucide-react";
+import { DownloadIcon as Download, ZoomInIcon as ZoomIn, ZoomOutIcon as ZoomOut } from "@opencraft/design-system-web/action-icons";
 import { useIntl } from "@opencraft/i18n/react";
 import { getDocument, GlobalWorkerOptions, TextLayer, type PDFDocumentProxy, type PDFPageProxy, type RenderTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";

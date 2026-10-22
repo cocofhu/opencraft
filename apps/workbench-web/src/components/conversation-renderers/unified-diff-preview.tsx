@@ -1,3 +1,4 @@
+import { MoreIcon as MoreHorizontal } from "@opencraft/design-system-web/action-icons";
 import {
   collapseUnifiedDiffContext,
   parseUnifiedDiff,
@@ -5,7 +6,7 @@ import {
   type UnifiedDiffRenderRow,
   type UnifiedDiffSegment,
 } from "@opencraft/chat-core";
-import { MoreHorizontal } from "lucide-react";
+
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ActivityDisclosureStateContext, useActivityOpen } from "./activity/activity-disclosure";
 
