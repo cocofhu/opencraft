@@ -8,8 +8,8 @@ import { createConversationKey, createDefaultTimelineProjectorRegistry, projectT
   type TimelineSourceItem, type TimelineSourceTurn } from "@opencraft/chat-core";
 import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
-import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { ComposerTurnChangeSummary } from "../../apps/workbench-web/src/components/conversation/turn-diff-resource";
+import { Conversation, type ConversationRestoreSnapshot } from "../../apps/workbench-web/src/components/conversation";
 import { BuiltinTimelineRendererPlugin } from "../../apps/workbench-web/src/components/conversation-renderers/builtin-timeline-renderer-plugin";
 import { embeddedLocaleCatalogs } from "../../apps/workbench-web/src/i18n/catalogs";
 import { createIntlTestRoot } from "./intl-root";
@@ -58,18 +58,14 @@ function longEmptyResponse(engine: string, withClock: boolean): TimelineSourceTu
 }
 
 function Demo() {
+  const [turnEntry, setTurnEntry] = useState(false);
   const [engine, setEngine] = useState("codex");
   const [generation, setGeneration] = useState(0);
   const [mounted, setMounted] = useState(true);
-  const [turnEntry, setTurnEntry] = useState(false);
   const [revision, setRevision] = useState(0);
   const [turn, setTurn] = useState<TimelineSourceTurn>({ id: "turn", status: "streaming", items: [reasoning("codex")] });
   probe.update = (action: string, selectedEngine = engine) => {
     setRevision(value => value + 1);
-    if (action.startsWith("turn-files-")) {
-      const mode = action.slice("turn-files-".length);
-      if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
-      const count = mode === "shrink" ? 2 : ["append", "regrow", "return"].includes(mode) ? 6 : 5;
     if (action.startsWith("turn-entry-")) {
       const mode = action.slice("turn-entry-".length);
       setTurnEntry(true);
@@ -77,6 +73,10 @@ function Demo() {
       const diff = mode === "empty" ? null : `diff --git a/live.ts b/live.ts\n--- a/live.ts\n+++ b/live.ts\n@@ -1 +1,${mode === "update" ? 2 : 1} @@\n-before\n+after\n${mode === "update" ? "+added\n" : ""}`;
       setTurn({ id: "turn", status: "streaming", unifiedDiff: diff, items: [reasoning(engine)] }); return;
     }
+    if (action.startsWith("turn-files-")) {
+      const mode = action.slice("turn-files-".length);
+      if (mode === "reset") { restore = null; setGeneration(value => value + 1); }
+      const count = mode === "shrink" ? 2 : ["append", "regrow", "return"].includes(mode) ? 6 : 5;
       const diff = Array.from({ length: count }, (_, index) => {
         const path = index === 5 ? "updated-file-6.ts" : `file-${index + 1}.ts`;
         return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1 +1 @@\n-before\n+after-${index + 1}\n`;
