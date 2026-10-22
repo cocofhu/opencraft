@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { LocaleRuntime } from "@opencraft/i18n";
 import { IntlRuntimeProvider } from "@opencraft/i18n/react";
 import { createWorkbenchPanelReactRuntime } from "@opencraft/workbench-panels-react";
-import { buildCodexThemeCssProperties, codexThemePalette } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties, opencraftNeutralThemePalette } from "@opencraft/design-system/theme-engine";
 import { ProgressIndicator } from "@opencraft/design-system-web/progress";
 import { bindTouchInteractionMode } from "../../apps/workbench-web/src/runtime/pointer-modality";
 import chineseMessages from "../../apps/workbench-web/src/i18n/locales/zh-CN.json";
@@ -31,9 +31,9 @@ const lease: DesktopControlLease = { isValid: () => valid,
 const notify = () => { for (const listener of listeners) listener(); };
 function theme(name: string) {
   const mode = name === "light" ? "light" : "dark";
-  const definition = name === "custom" ? { ...codexThemePalette.dark, surface: "#17232f", ink: "#f2e8d3" } : codexThemePalette[mode];
+  const definition = name === "custom" ? { ...opencraftNeutralThemePalette.dark, surface: "#17232f", ink: "#f2e8d3" } : opencraftNeutralThemePalette[mode];
   document.documentElement.dataset.theme = mode;
-  for (const [key, value] of Object.entries(buildCodexThemeCssProperties(mode, definition))) {
+  for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(mode, definition))) {
     document.documentElement.style.setProperty(key, value);
   }
 }

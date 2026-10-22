@@ -1,17 +1,14 @@
-import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
-import { useIntl } from "@opencraft/i18n/react";
-import { ThinkingLabel } from "../../thinking-label";
 import {
   formatAutomaticApprovalReviewSummary,
   formatAutomaticApprovalReviewTitle,
-  formatCodexToolDuration,
+  formatToolDuration,
   formatCommandActivitySummary,
   isAutomaticApprovalReviewWarning,
-  summarizeAutomaticApprovalReviewAction,
-  skillReadPresentation,
   presentReasoning,
-  type ReasoningContentPresentation,
+  skillReadPresentation,
+  summarizeAutomaticApprovalReviewAction,
   type AutomaticApprovalReview,
+  type ReasoningContentPresentation,
   type TimelineBlock,
 } from "@opencraft/chat-core";
 import {
@@ -22,343 +19,195 @@ import {
   writeTextToClipboard,
   writeToClipboard,
 } from "@opencraft/chat-render-web";
-import {
-  AlertCircle,
-  Brain,
-  Check,
-  ChevronRight,
-  Copy,
-  Wrench,
-} from "lucide-react";
+import { useIntl } from "@opencraft/i18n/react";
+import { AlertCircle, Brain, Check, ChevronRight, Copy, Shield, Terminal } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConversationDocumentContext } from "../../conversation/document-context";
+import { ThinkingLabel } from "../../thinking-label";
+import { useWorkbenchPresentationActive } from "../../workbench-presentation-activity";
+import { ConversationDetailContext, useToolActivityPresentation } from "../render-contexts";
+import { ActivityDisclosure, CadencedShimmer, useActivityOpen } from "./activity-disclosure";
 import { activityIcon } from "./activity-icon";
-import {
-  ActivityDisclosure,
-  CadencedShimmer,
-  useCodexActivityOpen,
-} from "./activity-disclosure";
-import { useToolActivityPresentation, ConversationDetailContext } from "../render-contexts";
 
-function ReasoningBlock({ block, presentation, active = block.streaming, collapsed, onCollapsedChange }: {
+
+export function ReasoningBlock({ block, presentation, active = block.streaming, collapsed, onCollapsedChange }: {
   readonly block: Extract<TimelineBlock, { type: "reasoning" }>;
   readonly presentation?: ReasoningContentPresentation;
   readonly active?: boolean;
   readonly collapsed?: boolean;
   readonly onCollapsedChange?: (collapsed: boolean) => void;
 }) {
-  const intl = useIntl();
   const document = useContext(ConversationDocumentContext);
-  // One View choice across running/settled phases, unlike tool activity's
-  // independent live/history defaults. Only explicit activation writes it.
-  const [localOpen, setLocalOpen] = useState(false);
-  const content = presentation ?? presentReasoning(block, active);
-  const open = collapsed === undefined ? localOpen : !collapsed;
-  const setOpen = (next: boolean) => {
-    if (onCollapsedChange) onCollapsedChange(!next);
-    else setLocalOpen(next);
-  };
-  if (content === null) return null;
-  return (
-    <div className="thread-reasoning" data-conversation-row="activity" data-reasoning-id={block.id} data-reasoning-active={active}>
-      <ActivityDisclosure
-        icon={<Brain aria-hidden="true" focusable="false" />}
-        onOpenChange={setOpen}
-        open={open}
-        running={active}
-        summary={active ? <ThinkingLabel /> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
-        detail={content.header}
-        unmountBodyWhenCollapsed
-      >
-        <div className="thread-activity-item__prose">
-          <WebChatDocument
-            documentId={block.id}
-            source={content.content}
-            streaming={active}
-            conversationId={document.conversationId}
-            hostId={document.hostId}
-            cwd={document.cwd}
-            theme={document.theme}
-            allowWideBlocks={false}
-            onOpenResource={document.onOpenResource}
-            loadMediaSource={document.loadMediaSource}
-            onMeasurementRequest={document.onMeasurementRequest}
-          />
-        </div>
-      </ActivityDisclosure>
-    </div>
-  );
-}
-
-function useCommandElapsedLabel(
-  block: Extract<TimelineBlock, { type: "command-execution" }>,
-  running: boolean,
-): string | null {
-  const presentationActive = useWorkbenchPresentationActive();
-  const fallbackStartedAt = useRef<number | null>(null);
-  if (fallbackStartedAt.current === null && running) fallbackStartedAt.current = Date.now();
-  const [nowMs, setNowMs] = useState(Date.now);
-  const backgroundRunning = running && !block.turnInProgress;
-  useEffect(() => {
-    if (!presentationActive || !running || backgroundRunning) return;
-    setNowMs(Date.now());
-    const interval = window.setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => window.clearInterval(interval);
-  }, [backgroundRunning, presentationActive, running]);
-  const durationMs = running
-    ? Math.max(0, nowMs - (block.startedAtMs ?? fallbackStartedAt.current ?? nowMs))
-    : Math.max(0, block.durationMs ?? 0);
-  return formatCodexToolDuration(durationMs);
-}
-
-/** Source-identical Codex automatic-review accessory: terminal prompt inside a shield. */
-function AutomaticApprovalReviewIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7.35645 8.36286C7.70789 8.01161 8.27846 8.01156 8.62988 8.36286L10.6299 10.3629C10.9813 10.7143 10.9812 11.2848 10.6299 11.6363L8.62988 13.6363C8.27841 13.9878 7.70792 13.9878 7.35645 13.6363C7.00509 13.2848 7.00501 12.7143 7.35645 12.3629L8.71973 10.9996L7.35645 9.6363C7.00509 9.28482 7.00501 8.71429 7.35645 8.36286Z" fill="currentColor" />
-      <path d="M15.9932 12.0992C16.4901 12.0993 16.8934 12.5027 16.8936 12.9996C16.8936 13.4966 16.4902 13.8999 15.9932 13.9H12.9932C12.4961 13.9 12.0928 13.4966 12.0928 12.9996C12.0929 12.5027 12.4962 12.0992 12.9932 12.0992H15.9932Z" fill="currentColor" />
-      <path clipRule="evenodd" d="M10.8398 1.25056C11.5807 0.926648 12.4233 0.926498 13.1641 1.25056L19.1553 3.87165C20.2108 4.33346 20.8925 5.37677 20.8926 6.52888V12.2252C20.8925 14.9571 19.9307 17.0944 18.3848 18.732C16.8587 20.3484 14.7999 21.442 12.6426 22.1939L12.6357 22.1959C12.2285 22.3338 11.787 22.3286 11.3828 22.1832C11.376 22.1808 11.3691 22.1797 11.3623 22.1773C9.20761 21.4308 7.1513 20.3432 5.625 18.734C4.07352 17.0981 3.10656 14.9601 3.10645 12.2252V6.52888C3.10658 5.37681 3.78925 4.33437 4.84473 3.87263L10.8398 1.25056ZM12.4424 2.89997C12.1614 2.77709 11.8415 2.7771 11.5605 2.89997L5.56641 5.52106C5.16607 5.69616 4.90736 6.09194 4.90723 6.52888V12.2252C4.90734 14.4896 5.69001 16.1864 6.93066 17.4947C8.11301 18.7413 9.74347 19.6681 11.5967 20.3502L11.9707 20.483L11.9805 20.4869L11.9912 20.4898C12.0126 20.4978 12.0359 20.4981 12.0576 20.4908C14.0571 19.793 15.8197 18.8263 17.0752 17.4966C18.312 16.1866 19.0927 14.4887 19.0928 12.2252V6.52888C19.0927 6.09191 18.8339 5.69623 18.4336 5.52106L12.4424 2.89997Z" fill="currentColor" fillRule="evenodd" />
-    </svg>
-  );
-}
-
-function automaticApprovalReviewActivityStatus(
-  review: AutomaticApprovalReview,
-): "running" | "completed" | "failed" | "interrupted" {
-  if (review.status === "inProgress") return "running";
-  if (review.status === "denied") return "failed";
-  if (review.status === "aborted") return "interrupted";
-  return "completed";
-}
-
-function AutomaticApprovalReviewRow({ review }: { readonly review: AutomaticApprovalReview }) {
-  const [open, setOpen] = useState(false);
-  const reduceMotion = useReducedMotion();
-  const warning = isAutomaticApprovalReviewWarning(review);
-  const title = formatAutomaticApprovalReviewTitle(review);
-  const summary = formatAutomaticApprovalReviewSummary(review);
-  return (
-    <div className="thread-auto-review" data-status={review.status} data-warning={warning || undefined}>
-      <button aria-expanded={open} onClick={() => setOpen((value) => !value)} type="button">
-        <CadencedShimmer active={review.status === "inProgress"}>{title}</CadencedShimmer>
-        <ChevronRight aria-hidden="true" size={12} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open ? (
-          <motion.p
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            initial={{ height: 0, opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.19, 1, 0.22, 1] }}
-          >{summary}</motion.p>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function AutomaticApprovalReviewList({ reviews }: { readonly reviews: readonly AutomaticApprovalReview[] }) {
-  if (reviews.length === 0) return null;
-  return <div className="thread-auto-review-list">{reviews.map((review) => <AutomaticApprovalReviewRow key={review.id} review={review} />)}</div>;
-}
-
-function AutomaticApprovalReviewBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "automatic-approval-review" }> }) {
-  const review = block.review;
-  const running = review.status === "inProgress";
-  const [open, setOpen] = useCodexActivityOpen(running);
-  return (
+  const intl = useIntl();
+  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const selected = presentation ?? presentReasoning(block, active);
+  const open = !(collapsed ?? localCollapsed);
+  if (selected === null) return <></>;
+  return <div className="thread-reasoning" data-conversation-row="activity" data-reasoning-id={block.id} data-reasoning-active={active}>
     <ActivityDisclosure
-      icon={<Wrench />}
-      onOpenChange={setOpen}
+      icon={<Brain />}
+      summary={active ? <ThinkingLabel /> : intl.formatMessage({ id: "chat.thought", defaultMessage: "Thought" })}
+      detail={selected.header}
+      running={active}
       open={open}
-      running={running}
-      status={automaticApprovalReviewActivityStatus(review)}
-      summary={summarizeAutomaticApprovalReviewAction(review.action)}
-    >
-      <AutomaticApprovalReviewRow review={review} />
-    </ActivityDisclosure>
-  );
-}
-
-function AutoReviewInterruptionWarningBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "auto-review-interruption-warning" }> }) {
-  return (
-    <div className="thread-event-divider thread-auto-review-interruption">
-      <span><Wrench aria-hidden="true" size={13} />{block.message}<i aria-label={block.detail} title={block.detail}><AlertCircle aria-hidden="true" size={12} /></i></span>
-    </div>
-  );
-}
-
-function unwrapShellCommand(value: string): string {
-  const stripOuterQuotes = (source: string): string => {
-    let result = source.trim().replace(/^\$\s+/u, "");
-    let changed = true;
-    while (changed) {
-      changed = false;
-      if ((result.startsWith("'") && result.endsWith("'")) || (result.startsWith('"') && result.endsWith('"'))) {
-        result = result.slice(1, -1).trim();
-        changed = true;
-      }
-    }
-    return result.replace(/'"'"'/gu, "'").trim();
-  };
-  const normalized = stripOuterQuotes(value);
-  const wrapper = normalized.match(/^(?:\/bin\/zsh|\/bin\/bash|zsh|bash)\s+-lc\s+([\s\S]+)$/u);
-  return stripOuterQuotes(wrapper?.[1] ?? normalized);
-}
-
-function ShellCopyButton({ className = "", label, value }: { readonly className?: string; readonly label: string; readonly value: string }) {
-  const intl = useIntl();
-  const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
-  useEffect(() => () => {
-    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-  }, []);
-  const copy = useCallback(() => {
-    void writeTextToClipboard(value).then(() => {
-      setCopied(true);
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = window.setTimeout(() => setCopied(false), 1500);
-    }).catch(() => setCopied(false));
-  }, [value]);
-  return (
-    <button aria-label={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : label} className={`thread-shell-output__copy ${className}`} onClick={copy} title={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : label} type="button">
-      {copied ? <Check size={12} /> : <Copy size={12} />}
-    </button>
-  );
-}
-
-function AssistantCopyButton({ value, getHtml, label }: { readonly value: string; readonly getHtml?: () => string | null; readonly label?: string }) {
-  const intl = useIntl();
-  const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<number | null>(null);
-  useEffect(() => () => {
-    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-  }, []);
-  const copy = useCallback(() => {
-    const html = getHtml?.();
-    void writeToClipboard(html ? { "text/plain": value, "text/html": html } : value).then(() => {
-      setCopied(true);
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = window.setTimeout(() => setCopied(false), 1_500);
-    }).catch(() => setCopied(false));
-  }, [value, getHtml]);
-  return (
-    <button aria-label={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : label ?? intl.formatMessage({ id: "chat.response.copy", defaultMessage: "Copy response" })} onClick={copy} title={copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : label ?? intl.formatMessage({ id: "chat.response.copy", defaultMessage: "Copy response" })} type="button">
-      {copied ? <Check size={13} /> : <Copy size={13} />}
-    </button>
-  );
-}
-
-function EmbeddedShellOutput({ block }: { block: Extract<TimelineBlock, { type: "command-execution" }> }) {
-  const intl = useIntl();
-  const running = block.status === "pending" || block.status === "running";
-  const command = unwrapShellCommand(block.command);
-  const output = normalizeTerminalOutput(block.output ?? "");
-  const displayOutput = /\S/u.test(output) ? output : running ? "" : block.resultMissing ? "Execution result unavailable" : "No output";
-  const outputRef = useRef<HTMLPreElement>(null);
-  const followsOutputRef = useRef(true);
-  const updateFollowIntent = useCallback(() => {
-    const element = outputRef.current;
-    if (element === null) return;
-    followsOutputRef.current = element.scrollHeight - element.clientHeight - element.scrollTop <= 2;
-  }, []);
-  useLayoutEffect(() => {
-    const element = outputRef.current;
-    if (element !== null && followsOutputRef.current) element.scrollTop = element.scrollHeight;
-  }, [displayOutput]);
-  const footer = running ? null
-    : block.resultMissing ? <span>Result unknown</span>
-    : block.status === "interrupted" ? <span>Stopped</span>
-    : block.exitCode === 0 ? <span><Check size={11} /> Success</span>
-    : <span>Exit code {block.exitCode ?? "unknown"}</span>;
-  return (
-    <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
-      {command.trim().length > 0 ? (
-        <div className="thread-shell-output__command">
-          <code><span aria-hidden="true">$ </span><AnsiTerminalText>{command}</AnsiTerminalText></code>
-          <ShellCopyButton label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} value={command} />
-        </div>
-      ) : null}
-      <div className="thread-shell-output__output">
-        <pre onScroll={updateFollowIntent} ref={outputRef}><code><AnsiTerminalText>{displayOutput}</AnsiTerminalText></code></pre>
-        {output.length > 0 ? <ShellCopyButton label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} value={output} /> : null}
-      </div>
-      <div className="thread-shell-output__footer" data-status={block.status}>{footer}</div>
-    </div>
-  );
-}
-
-function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: "command-execution" }> }) {
-  const presentation = useToolActivityPresentation(block);
-  const detailLevel = useContext(ConversationDetailContext);
-  const skill = skillReadPresentation(block, detailLevel);
-  const documentContext = useContext(ConversationDocumentContext);
-  // ExecShellContainer owns one persistent disclosure state. Unlike generic
-  // Activity rows, a running command starts collapsed and does not switch to
-  // separate live/settled memories when it completes.
-  const [open, setOpen] = useState(false);
-  const elapsedLabel = useCommandElapsedLabel(block, presentation.state === "running");
-  const action = block.actions.length === 1 ? block.actions[0] : undefined;
-  const semanticAction = action !== undefined && action.type !== "unknown";
-  const summary = skill?.summary ?? (semanticAction
-    ? presentation.summary
-    : formatCommandActivitySummary(block, presentation.state, { expanded: open, elapsedLabel }));
-  const detail = skill?.detail ?? (action?.type === "read" && action.path.trim().length > 0 ? (
-    <button
-      className="thread-activity-item__file-link"
-      onClick={(event) => {
-        event.stopPropagation();
-        const decision = resolveStandardChatResource(action.path, {
-          cwd: documentContext.cwd,
-          externalResourcePolicy: "allow",
-        });
-        if (decision.allowed && decision.target !== null) {
-          documentContext.onOpenResource?.(decision.target, decision);
-        }
-      }}
-      type="button"
-    >{presentation.detail ?? action.path}</button>
-  ) : semanticAction ? presentation.detail : null);
-  const hasAuxiliaryBody = block.automaticApprovalReviews.length > 0;
-  if (skill?.visible === false) return null;
-  return (
-    <ActivityDisclosure
-      accessory={block.automaticApprovalReviews.length > 0 ? <AutomaticApprovalReviewIcon /> : null}
-      detail={detail}
-      icon={activityIcon(presentation.icon)}
-      onOpenChange={setOpen}
-      open={open}
-      running={presentation.state === "running"}
-      status={presentation.state}
-      summary={summary}
+      onOpenChange={next => (onCollapsedChange ?? setLocalCollapsed)(!next)}
       unmountBodyWhenCollapsed
     >
-      {(!semanticAction && presentation.canExpand) || hasAuxiliaryBody ? (
-        <>
-          {!semanticAction && presentation.canExpand ? <EmbeddedShellOutput block={block} /> : null}
-          <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} />
-        </>
-      ) : null}
+      <div className="thread-activity-item__prose">
+        <WebChatDocument documentId={`reasoning:${block.id}`} source={selected.content} streaming={active}
+          conversationId={document.conversationId} hostId={document.hostId} cwd={document.cwd} theme={document.theme}
+          onOpenResource={document.onOpenResource} loadMediaSource={document.loadMediaSource}
+          onMeasurementRequest={document.onMeasurementRequest} />
+      </div>
     </ActivityDisclosure>
-  );
+  </div>;
 }
 
+/** Generic shield and terminal assembled from the project's licensed Lucide primitives. */
+export function AutomaticApprovalReviewIcon() {
+  return <Shield aria-hidden="true"><Terminal x={6} y={6} width={12} height={12} strokeWidth={2} /></Shield>;
+}
 
-export {
-  AssistantCopyButton,
-  AutomaticApprovalReviewBlock,
-  AutomaticApprovalReviewIcon,
-  AutomaticApprovalReviewList,
-  AutoReviewInterruptionWarningBlock,
-  CommandBlock,
-  ReasoningBlock,
-};
+function ReviewAssessment({ review }: { readonly review: AutomaticApprovalReview }) {
+  const [expanded, setExpanded] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const running = review.status === "inProgress";
+  return <div className="thread-auto-review" data-status={review.status} data-warning={isAutomaticApprovalReviewWarning(review) || undefined}>
+    <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>
+      <CadencedShimmer active={running}>{formatAutomaticApprovalReviewTitle(review)}</CadencedShimmer>
+      <ChevronRight aria-hidden="true" size={12} />
+    </button>
+    <AnimatePresence initial={false}>
+      {expanded ? <motion.p key="assessment" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}>
+        {formatAutomaticApprovalReviewSummary(review)}
+      </motion.p> : null}
+    </AnimatePresence>
+  </div>;
+}
+
+export function AutomaticApprovalReviewList({ reviews }: { readonly reviews: readonly AutomaticApprovalReview[] }) {
+  return <div className="thread-auto-review-list">{reviews.map(review => <ReviewAssessment key={review.id} review={review} />)}</div>;
+}
+
+export function AutomaticApprovalReviewBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "automatic-approval-review" }> }) {
+  const review = block.review;
+  const running = review.status === "inProgress";
+  const [open, setOpen] = useActivityOpen(running);
+  return <ActivityDisclosure icon={<AutomaticApprovalReviewIcon />} summary={summarizeAutomaticApprovalReviewAction(review.action)}
+    running={running} status={running ? "running" : review.status === "denied" ? "failed" : review.status === "aborted" ? "interrupted" : "completed"}
+    open={open} onOpenChange={setOpen}>
+    <ReviewAssessment review={review} />
+  </ActivityDisclosure>;
+}
+
+export function AutoReviewInterruptionWarningBlock({ block }: { readonly block: Extract<TimelineBlock, { type: "auto-review-interruption-warning" }> }) {
+  return <div className="thread-event-divider thread-auto-review-interruption"><span>
+    <AutomaticApprovalReviewIcon />{block.message}<i aria-label={block.detail} title={block.detail}><AlertCircle aria-hidden="true" size={12} /></i>
+  </span></div>;
+}
+
+/** Feedback belongs to the mounted action; clipboard policy stays in the shared port. */
+function useCopyFeedback() {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generation = useRef(0);
+  useEffect(() => () => {
+    generation.current++;
+    if (timer.current !== null) clearTimeout(timer.current);
+  }, []);
+  const perform = async (write: () => Promise<void>) => {
+    const current = ++generation.current;
+    try { await write(); } catch { return; }
+    if (generation.current !== current) return;
+    setCopied(true);
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { timer.current = null; setCopied(false); }, 1500);
+  };
+  return { copied, perform };
+}
+
+export function AssistantCopyButton({ value, getHtml, label }: {
+  readonly value: string;
+  readonly getHtml?: () => string | null;
+  readonly label?: string;
+}) {
+  const intl = useIntl();
+  const { copied, perform } = useCopyFeedback();
+  const accessibleLabel = copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" })
+    : label ?? intl.formatMessage({ id: "chat.response.copy", defaultMessage: "Copy response" });
+  return <button type="button" aria-label={accessibleLabel} title={accessibleLabel} onClick={() => void perform(() => {
+    const html = getHtml?.();
+    return html ? writeToClipboard({ "text/plain": value, "text/html": html }) : writeTextToClipboard(value);
+  })}>{copied ? <Check aria-hidden="true" size={16} /> : <Copy aria-hidden="true" size={16} />}</button>;
+}
+
+function TerminalCopyButton({ value, label }: { readonly value: string; readonly label: string }) {
+  const { copied, perform } = useCopyFeedback();
+  const intl = useIntl();
+  const title = copied ? intl.formatMessage({ id: "common.copied", defaultMessage: "Copied" }) : label;
+  return <button type="button" className={`thread-shell-output__copy ${copied ? "is-copied" : ""}`} title={title} aria-label={title}
+    onClick={() => void perform(() => writeTextToClipboard(value))}>
+    {copied ? <Check aria-hidden="true" size={12} /> : <Copy aria-hidden="true" size={12} />}
+  </button>;
+}
+
+function CommandOutput({ block, running }: { readonly block: Extract<TimelineBlock, { type: "command-execution" }>; readonly running: boolean }) {
+  const intl = useIntl();
+  const output = normalizeTerminalOutput(block.output ?? "");
+  return <div className="thread-shell-output" title={block.cwd === null ? undefined : `cwd\n${block.cwd}`}>
+    <div className="thread-shell-output__command"><code><span aria-hidden="true">$ </span><span>{block.command}</span></code>
+      <TerminalCopyButton value={block.command} label={intl.formatMessage({ id: "chat.command.copy", defaultMessage: "Copy command" })} />
+    </div>
+    <div className="thread-shell-output__output"><pre><code>{output ? <AnsiTerminalText>{output}</AnsiTerminalText> : block.resultMissing ? "Execution result unavailable" : "No output"}</code></pre>
+      {output ? <TerminalCopyButton value={output} label={intl.formatMessage({ id: "chat.output.copy", defaultMessage: "Copy output" })} /> : null}
+    </div>
+    {!running ? <div className="thread-shell-output__footer" data-status={block.status}><span>
+      {block.resultMissing ? "Result unknown" : block.status === "interrupted" ? "Stopped" : block.exitCode === 0 ? <><Check aria-hidden="true" size={12} /> Success</> : `Exit code ${block.exitCode ?? "unknown"}`}
+    </span></div> : null}
+  </div>;
+}
+
+function useCommandElapsed(block: Extract<TimelineBlock, { type: "command-execution" }>, running: boolean) {
+  const active = useWorkbenchPresentationActive();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!running || !active || block.startedAtMs === null) return;
+    setNow(Date.now());
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [active, running, block.startedAtMs]);
+  return running && block.startedAtMs !== null ? Math.max(0, now - block.startedAtMs) : block.durationMs;
+}
+
+export function CommandBlock({ block }: { block: Extract<TimelineBlock, { type: "command-execution" }> }) {
+  const presentation = useToolActivityPresentation(block);
+  const detailLevel = useContext(ConversationDetailContext);
+  const document = useContext(ConversationDocumentContext);
+  const intl = useIntl();
+  const [open, setOpen] = useState(false);
+  const running = presentation.state === "running";
+  const elapsed = useCommandElapsed(block, running);
+  const skill = skillReadPresentation(block, detailLevel);
+  const read = block.actions.length === 1 && block.actions[0]?.type === "read" ? block.actions[0] : null;
+  let detail: ReactNode = skill?.detail ?? presentation.detail;
+  if (skill === null && read !== null && document.onOpenResource !== undefined) {
+    const decision = resolveStandardChatResource(read.path || read.name, { cwd: document.cwd ?? block.cwd, externalResourcePolicy: "allow" });
+    if (decision.allowed && decision.target !== null) detail = <button type="button" className="thread-activity-item__file-link"
+      onClick={() => document.onOpenResource?.(decision.target!, decision)}>{presentation.detail ?? read.name}</button>;
+  }
+  const semanticAction = block.actions.length === 1 && block.actions[0]?.type !== "unknown";
+  const isTerminal = !semanticAction;
+  const label = isTerminal ? formatCommandActivitySummary(block, presentation.state, { expanded: open,
+    elapsedLabel: elapsed === null ? null : formatToolDuration(elapsed, intl.locale) }) : skill?.summary ?? presentation.summary;
+  if (skill?.visible === false) return <></>;
+  return <ActivityDisclosure icon={activityIcon(presentation.icon)} summary={label} detail={detail}
+    running={running} status={presentation.state} open={open} onOpenChange={setOpen} unmountBodyWhenCollapsed
+    accessory={block.automaticApprovalReviews.length ? <AutomaticApprovalReviewIcon /> : undefined}>
+    {isTerminal && presentation.canExpand ? <>
+      <CommandOutput block={block} running={running} />
+      {block.automaticApprovalReviews.length ? <AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /> : null}
+    </> : null}
+  </ActivityDisclosure>;
+}

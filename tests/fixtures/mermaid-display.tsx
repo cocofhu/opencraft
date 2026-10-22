@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { WebChatDocument } from "@opencraft/chat-render-web";
 import { createIntlTestRoot } from "./intl-root";
-import { buildCodexThemeCssProperties, lavenderThemePalette } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties, lavenderThemePalette } from "@opencraft/design-system/theme-engine";
 import "../../apps/workbench-web/src/styles/app.scss";
 const sources = {
   login: `flowchart LR
@@ -19,7 +19,7 @@ const sources = {
 const requested = new URLSearchParams(location.search).get("theme") ?? "light";
 const theme = requested === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [name, value] of Object.entries(buildCodexThemeCssProperties(theme, requested === "lavender" ? lavenderThemePalette.light : undefined))) document.documentElement.style.setProperty(name, value);
+for (const [name, value] of Object.entries(buildOpenCraftThemeCssProperties(theme, requested === "lavender" ? lavenderThemePalette.light : undefined))) document.documentElement.style.setProperty(name, value);
 function Demo() {
   const [width, setWidth] = useState(960);
   const [revision, setRevision] = useState(0);

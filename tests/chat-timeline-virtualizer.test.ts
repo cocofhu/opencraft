@@ -6,8 +6,8 @@ import {
   buildTurnLayout,
   buildTimelineLayout,
   calculateSoftwareKeyboardInset,
-  CODEX_LATEST_TURN_PLACEMENT_SPRING,
-  CODEX_TURN_VIRTUALIZER_CONFIG,
+  OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING,
+  OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   compensateDistanceFromBottom,
   computeTurnRange,
   computeTurnViewportBounds,
@@ -178,7 +178,7 @@ const turns = (count: number, height = 100): readonly VirtualizedTurnEntry[] =>
   }));
 
 const config = {
-  ...CODEX_TURN_VIRTUALIZER_CONFIG,
+  ...OPENCRAFT_TURN_VIRTUALIZER_CONFIG,
   gapPx: 0,
   overscanTurnCount: 0,
 };
@@ -207,7 +207,7 @@ test("domain-neutral Timeline geometry has no public Turn configuration", () => 
   assert.equal(window.entries.at(-1)?.timelineKey, "execution:b");
 });
 
-test("Codex Turn layout uses chronological top offsets and inverted bottom offsets", () => {
+test("OpenCraft Turn layout uses chronological top offsets and inverted bottom offsets", () => {
   const layout = buildTurnLayout(turns(3), {}, config);
   assert.deepEqual(layout.topOffsetsPx, [0, 100, 200]);
   assert.deepEqual(layout.bottomOffsetsPx, [200, 100, 0]);
@@ -222,7 +222,7 @@ test("the latest Turn is selected at distanceFromBottom zero", () => {
   assert.deepEqual(computeTurnRange(layout, 400, 100, 0), { startIndex: 0, endIndex: 1 });
 });
 
-test("Codex overscan is counted in Turns rather than pixels", () => {
+test("OpenCraft overscan is counted in Turns rather than pixels", () => {
   const layout = buildTurnLayout(turns(8), {}, config);
   assert.deepEqual(computeTurnRange(layout, 300, 100, 2), { startIndex: 2, endIndex: 7 });
 });
@@ -237,12 +237,12 @@ test("measured heights override estimates while history gaps retain explicit est
   assert.equal(layout.totalHeightPx, 952);
 });
 
-test("unknown Turn heights use the recovered Codex 280px estimate", () => {
+test("unknown Turn heights use the 280px layout estimate", () => {
   const layout = buildTurnLayout([{ turnKey: "unknown" }]);
   assert.equal(layout.heightsPx[0], 280);
 });
 
-test("duplicate Turn identity matches Codex layout semantics by retaining the last index", () => {
+test("duplicate Turn identity retains the last layout index", () => {
   const layout = buildTurnLayout([{ turnKey: "same" }, { turnKey: "same" }]);
   assert.deepEqual(layout.turnKeys, ["same", "same"]);
   assert.equal(layout.turnIndexByKey.get("same"), 1);
@@ -575,7 +575,7 @@ test("ten thousand Turns retain a bounded mounted window", () => {
   const viewport = createTurnViewportState(layout, 400_000, 900);
   const slice = createTurnWindowSlice(entries, layout, viewport.renderedRange);
   assert.ok(slice.entries.length <= 16, `mounted ${slice.entries.length} Turns`);
-  assert.equal(slice.totalHeightPx, 10_000 * 96 + 9_999 * CODEX_TURN_VIRTUALIZER_CONFIG.gapPx);
+  assert.equal(slice.totalHeightPx, 10_000 * 96 + 9_999 * OPENCRAFT_TURN_VIRTUALIZER_CONFIG.gapPx);
 });
 
 test("streaming growth below a measured viewport anchor preserves visible content", () => {
@@ -707,7 +707,7 @@ test("identity handoff transfers measured geometry without fabricating content g
     "unrelated messages cannot inherit a previous row's height");
 });
 
-test("the recovered prework follow state machine is shared by Web and RN adapters", () => {
+test("the prework follow state machine is shared by Web and RN adapters", () => {
   let state = createInitialTurnFollowState({
     distanceFromBottomPx: 0,
     isLatestTurnInProgress: true,
@@ -855,8 +855,8 @@ test("reading away cancels local response watch and restored watch cannot steal 
   }).followMode, "user_follow");
 });
 
-test("latest Turn placement and response spacer retain recovered Codex constants", () => {
-  assert.deepEqual(CODEX_LATEST_TURN_PLACEMENT_SPRING, {
+test("latest Turn placement and response spacer retain OpenCraft layout constants", () => {
+  assert.deepEqual(OPENCRAFT_LATEST_TURN_PLACEMENT_SPRING, {
     bounce: 0,
     durationMs: 500,
     damping: 36.933653905806345,
@@ -976,7 +976,7 @@ test("target positioning can align a descendant inside a Turn", () => {
   }), 160);
 });
 
-test("input modality helpers retain Codex wheel, keyboard, touch and history thresholds", () => {
+test("input modality helpers retain wheel, keyboard, touch and history thresholds", () => {
   assert.equal(normalizeInitialScrollDistance(24), 0);
   assert.equal(normalizeInitialScrollDistance(25), 25);
   assert.equal(normalizeWheelDeltaPx(2, 1, 800), 32);
@@ -1080,7 +1080,7 @@ test("capturing a restore checkpoint cannot grant live follow ownership", () => 
     scrollPaddingBottomPx: 160,
   });
 
-  // The checkpoint is normalized for a future mount, exactly like Codex fO,
+  // The checkpoint is normalized for a future mount,
   // while the mounted viewport keeps its existing read-position ownership.
   assert.equal(checkpoint.distanceFromBottomPx, 0);
   assert.equal(checkpoint.scrollState.followMode, "prework_follow");
@@ -1144,7 +1144,7 @@ test("only prework follow transfer owns an explicit phase-transition bottom comm
   assert.equal(transition.followState.followMode, "user_follow");
 });
 
-test("shared scroll controller preserves layout and runs the recovered 260ms bottom animation", () => {
+test("shared scroll controller preserves layout and runs the 260ms bottom animation", () => {
   let distance = 500;
   let scrollHeight = 2_000;
   let now = 0;
@@ -1269,7 +1269,7 @@ for (const [confirmed, physical] of [[0, 800], [400, 800], [400, 20]] as const) 
         const [id, callback] = frames.entries().next().value!;
         frames.delete(id);
         callback(130);
-        assert.equal(distance, physical / 8, "r3562 cubic animation must use the current physical origin");
+        assert.equal(distance, physical / 8, "cubic animation must use the current physical origin");
       }
     } finally {
       controller.dispose();

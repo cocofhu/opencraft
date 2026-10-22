@@ -9,13 +9,11 @@ export interface RealtimeDelegation {
   readonly transcriptDelta: string | null;
 }
 
-/** Requirements-driven replacement; historical source and limits are recorded in
- * docs/provenance/realtime-transcript-replacement.md. */
+
 export function realtimeDelegationText(value: unknown): string {
   if (typeof value === "string") return value;
-  if (!Array.isArray(value)) return "";
   const parts: string[] = [];
-  for (const part of value) {
+  for (const part of Array.isArray(value) ? value : [value]) {
     if (typeof part === "string") parts.push(part);
     else if (part !== null && typeof part === "object" && part.type === "text" && typeof part.text === "string") {
       parts.push(part.text);

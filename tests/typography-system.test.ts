@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import test from "node:test";
+import { compileString } from "sass";
+import { fileURLToPath } from "node:url";
 
 
 import {
@@ -68,7 +70,7 @@ test("iPhone Web keeps editable text legible without focus zoom and locks app vi
   const html = read("../apps/workbench-web/index.html");
   const app = read("../apps/workbench-web/src/styles/app.scss");
   assert.match(html, /name="viewport"[^>]*maximum-scale=1[^>]*user-scalable=no/u);
-  assert.match(app, /\.codex-composer-editor\s*\{[\s\S]*?font: var\(--typography-composer-font\)/u,
+  assert.match(app, /\.opencraft-composer-editor\s*\{[\s\S]*?font: var\(--typography-composer-font\)/u,
     "desktop Composer typography remains unchanged");
   assert.match(app, /@media\s*\(max-width:\s*767px\)\s*and\s*\(any-pointer:\s*coarse\)/u);
   assert.match(app, /\[contenteditable="true"\][\s\S]*?font-size:\s*max\(var\(--typography-mobile-input-size\),\s*1rem\)\s*!important/u);
@@ -82,4 +84,16 @@ test("shared filter controls retain their authored dimensions", () => {
   assert.match(tokens, /--width-filter-control: 160px/u);
   assert.match(sharedTokens, /filterHeight: 36/u);
   assert.match(sharedTokens, /filterWidth: 160/u);
+});
+
+
+test("local typography mixins emit no global variables but the global adapter provides them", () => {
+  const directory = fileURLToPath(new URL("../packages/design-system/src/", import.meta.url)).replaceAll("\\", "/");
+  const local = compileString('@use "typography-mixins.web" as typography; .probe { @include typography.role(count-badge, tertiary); }', { loadPaths: [directory] }).css;
+  assert.doesNotMatch(local, /:root|--font-family-ui:/u);
+  assert.match(local, /font-family: var\(--typography-count-badge-family\)/u);
+  assert.match(local, /color: var\(--color-text-tertiary\)/u);
+  const global = compileString('@use "typography.web";', { loadPaths: [directory] }).css;
+  assert.match(global, /--font-family-count:/u);
+  assert.match(global, /--typography-count-badge-weight: 700/u);
 });

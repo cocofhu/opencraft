@@ -9,7 +9,7 @@ import React,{useState,useCallback} from 'react';
 import {createIntlTestRoot} from '/tests/fixtures/intl-root.tsx';
 import {createComposerController} from '@opencraft/composer-core';
 import {compileSubmitIntent} from '@opencraft/composer-appserver';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {WebChatDocument,WebUserMessageDocument} from '@opencraft/chat-render-web';
 import {ConversationSelectionMenu} from '/apps/workbench-web/src/components/conversation/selection-menu.tsx';
 import {initializeAppearanceTheme,setThemePreference,setAppearanceThemeId} from '/apps/workbench-web/src/appearance-theme.ts';
@@ -31,7 +31,7 @@ function App(){
   <div style={{height:500}} />
  </div>
  <ConversationSelectionMenu key={thread+'menu'} root={root} onAddToChat={add}/>
- <CodexComposer controller={controller} placeholder='Write a message' onSubmit={intent=>{window.fixture.intent=intent;window.fixture.compiled=compileSubmitIntent(intent);return false}} onCancel={()=>{}}/>
+ <OpenCraftComposer controller={controller} placeholder='Write a message' onSubmit={intent=>{window.fixture.intent=intent;window.fixture.compiled=compileSubmitIntent(intent);return false}} onCancel={()=>{}}/>
  </main>;
 }
 createIntlTestRoot(document.getElementById('root'),undefined,new URLSearchParams(location.search).get('locale')||'en-US').render(<App/>);
@@ -62,7 +62,7 @@ try {
   await page.setViewportSize({width:900,height:900});
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   const origin=`http://127.0.0.1:${(vite.httpServer!.address() as {port:number}).port}`;
-  await page.goto(origin);const editor=page.locator('.codex-composer-editor');await editor.waitFor();
+  await page.goto(origin);const editor=page.locator('.opencraft-composer-editor');await editor.waitFor();
   const action=page.getByRole('button',{name:'Add to chat',exact:true});
   await page.locator('#assistant p').first().waitFor();
   await editor.click();await page.keyboard.insertText('Existing draft');
@@ -93,7 +93,7 @@ try {
   await page.keyboard.press('Control+z');assert.equal(await editor.locator('blockquote').count(),1);
   // Exclude sender labels, composer and selections crossing different messages.
   await select(page,'#sender');await action.waitFor({state:'hidden'});
-  await select(page,'.codex-composer-editor p');assert.equal(await action.count(),0);
+  await select(page,'.opencraft-composer-editor p');assert.equal(await action.count(),0);
   await page.evaluate(()=>{const a=document.querySelector('#assistant p')!.firstChild!;const b=document.querySelector('#user p')!.firstChild!;const r=document.createRange();r.setStart(a,0);r.setEnd(b,0);window.getSelection()!.removeAllRanges();window.getSelection()!.addRange(r)});
   await action.waitFor({state:'hidden'});
   // Partial code stays partial, with no code-header actions or full-block expansion.
@@ -121,7 +121,7 @@ try {
     const colors=await action.evaluate(el=>({color:getComputedStyle(el).color,bg:getComputedStyle(el.parentElement!).backgroundColor}));
     assert.notEqual(colors.color,colors.bg);await page.keyboard.press('Escape');
   }
-  await page.evaluate(()=>(window as any).fixture.setAppearanceThemeId('vela.core.lavender'));
+  await page.evaluate(()=>(window as any).fixture.setAppearanceThemeId('opencraft.core.lavender'));
   await mkdir('.local/selection-quote',{recursive:true});
   await select(page,'#assistant p',0,5);await action.waitFor();await page.waitForTimeout(160);await page.screenshot({path:'.local/selection-quote/desktop.png'});
   if(!process.env.OPENCRAFT_CDP_URL){
@@ -131,7 +131,7 @@ try {
   await mobile.waitForTimeout(100);
   assert.equal(await mobile.getByRole('button',{name:'添加到对话',exact:true}).count(),0);
   assert.equal(await mobile.evaluate(()=>window.getSelection()?.toString()),'Original user question 中文。','native selection remains available');
-  assert.equal(await mobile.locator('.codex-composer-editor blockquote').count(),0);
+  assert.equal(await mobile.locator('.opencraft-composer-editor blockquote').count(),0);
   // Layout preference changes revoke an already open menu, without clearing selection.
   await page.evaluate(()=>document.documentElement.dataset.uiDensity='compact');
   await select(page,'#assistant p',0,5);await action.waitFor();

@@ -8,19 +8,19 @@ try {
  await vite.listen(); browser = await chromium.launch({ headless: true, executablePath: process.env.OPENCRAFT_CHROMIUM_EXECUTABLE, args: ["--no-sandbox"] });
 
  const quick = process.argv.includes("--quick");
- for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["codex"] : ["codex", "vela", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
+ for (const width of quick ? [390] : [320, 390, 1280]) for (const palette of quick ? ["opencraftNeutral"] : ["opencraftNeutral", "opencraftCanvas", "frost", "lavender", "mist", "zenCode"]) for (const mode of ["light", "dark"]) {
   console.log(`Checking ${width}/${palette}/${mode}`);
   const page = await browser.newPage({ viewport: { width, height: 800 }, hasTouch: true });
   const errors: string[] = []; page.on("pageerror", (e: Error) => errors.push(e.message));
   await page.addInitScript("window.__name=value=>value");
   await page.goto(`${vite.resolvedUrls!.local[0]}?palette=${palette}&mode=${mode}`);
-  const editor = page.locator('.codex-composer-editor'); await editor.waitFor();
+  const editor = page.locator('.opencraft-composer-editor'); await editor.waitFor();
   await page.evaluate(() => (window as any).setTouch(true));
-  const shape = () => page.locator('.codex-composer-shell').evaluate((n: HTMLElement) => ({height:n.getBoundingClientRect().height, width:n.getBoundingClientRect().width, background:getComputedStyle(n, "::before").backgroundColor, radius:getComputedStyle(n).borderRadius, blur:getComputedStyle(n, "::before").backdropFilter, overflow:document.documentElement.scrollWidth > innerWidth}));
+  const shape = () => page.locator('.opencraft-composer-shell').evaluate((n: HTMLElement) => ({height:n.getBoundingClientRect().height, width:n.getBoundingClientRect().width, background:getComputedStyle(n, "::before").backgroundColor, radius:getComputedStyle(n).borderRadius, blur:getComputedStyle(n, "::before").backdropFilter, overflow:document.documentElement.scrollWidth > innerWidth}));
   await page.waitForTimeout(100); const original = await shape();
   await page.evaluate(() => (window as any).setNewera(true)); await page.waitForTimeout(100);
   const compact = await shape(); assert(compact.height <= 60, JSON.stringify(compact)); assert.equal(compact.radius, "28px"); assert(compact.blur.includes("20px")); assert(!compact.overflow);
-  const circles = page.locator('.codex-composer-icon-button:visible, .codex-composer-submit:visible');
+  const circles = page.locator('.opencraft-composer-icon-button:visible, .opencraft-composer-submit:visible');
   for (const button of await circles.all()) {
     assert(await button.evaluate((node: HTMLElement) => {
       const rect = node.getBoundingClientRect(), style = getComputedStyle(node);
@@ -31,27 +31,18 @@ try {
     }), 'visible icon and true hit region are circular, including microphone and send');
   }
   assert.equal(await page.locator('.thread-scroll-footer__gradient').evaluate((node: HTMLElement) => getComputedStyle(node).backgroundImage), 'none');
-  assert(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) => {
-    const footer = getComputedStyle(node);
-    const gutter = getComputedStyle(node, '::after');
-    const surface = document.createElement('span');
-    surface.style.background = 'var(--color-surface)';
-    node.append(surface);
-    const surfaceColor = getComputedStyle(surface).backgroundColor;
-    surface.remove();
-    return gutter.backgroundColor === surfaceColor
-      && Number.parseFloat(gutter.height) === Number.parseFloat(footer.paddingBottom)
-      && gutter.pointerEvents === 'none';
-  }), 'only the safe-area gutter covers scrolling rows below the Composer');
+  assert.equal(await page.locator('.thread-scroll-footer').evaluate((node: HTMLElement) =>
+    getComputedStyle(node, '::after').content), 'none',
+    'touch safe area stays open beneath the floating Composer');
   assert(compact.background.includes('0.62'), compact.background);
-  const shell = page.locator('.codex-composer-shell');
+  const shell = page.locator('.opencraft-composer-shell');
   const glassBefore = await shell.screenshot();
   await page.locator('[aria-hidden]').first().evaluate((node: HTMLElement) => { node.style.background = 'rgb(220,40,80)'; });
   const glassAfter = await shell.screenshot();
   assert(!glassBefore.equals(glassAfter), 'backdrop changes must be visible through the glass');
   await page.locator('[aria-hidden]').first().evaluate((node: HTMLElement) => { node.style.background = ''; });
   await page.evaluate(() => (window as any).setQueue(true));
-  const rail = page.locator('.codex-composer-attached-rail'); await rail.waitFor();
+  const rail = page.locator('.opencraft-composer-attached-rail'); await rail.waitFor();
   const railMaterial = await rail.evaluate((node: HTMLElement) => {
     const style = getComputedStyle(node, '::before');
     return {background:style.backgroundColor, blur:style.backdropFilter, hit:style.pointerEvents, ownerFilter:getComputedStyle(node).backdropFilter};
@@ -65,13 +56,13 @@ try {
   const railAfter = await rail.screenshot();
   assert(!railBefore.equals(railAfter), 'scrolling backdrop must show through queue glass too');
   await page.locator('[aria-hidden]').first().evaluate((node: HTMLElement) => { node.style.background = ''; });
-  if (width === 390 && palette === 'codex') await page.locator('.codex-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
-  if (width === 390 && palette === 'codex') {
+  if (width === 390 && palette === 'opencraftNeutral') await page.locator('.opencraft-composer-stack').screenshot({path:`/tmp/newera-rail-${mode}.png`});
+  if (width === 390 && palette === 'opencraftNeutral') {
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-transparency',value:'reduce'}]});
     assert(await page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches));
     const fallback = await rail.evaluate((node: HTMLElement) => {
-      const editor = node.parentElement!.querySelector('.codex-composer-shell')!;
+      const editor = node.parentElement!.querySelector('.opencraft-composer-shell')!;
       return {rail:getComputedStyle(node,'::before').backgroundColor,editor:getComputedStyle(editor,'::before').backgroundColor,railBlur:getComputedStyle(node,'::before').backdropFilter,editorBlur:getComputedStyle(editor,'::before').backdropFilter};
     });
     assert(!fallback.editor.includes('0.62')); assert.equal(fallback.railBlur,'none'); assert.equal(fallback.editorBlur,'none');
@@ -90,31 +81,33 @@ try {
   const expanding = await shell.evaluate((node: HTMLElement) => node.getAnimations().filter(animation => animation.id === "newera-focus-expansion").length);
   assert.equal(expanding, 0, 'empty focus has no geometry animation');
   await page.waitForTimeout(220);
-  assert.equal((await shape()).height, compact.height, 'empty focus keeps one row');
+  assert((await shape()).height > compact.height + 20, 'editor focus opens the normal footer');
   await editor.evaluate((node: HTMLElement) => node.blur());
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEditing === 'false');
   assert.equal((await shape()).height, compact.height, 'empty blur returns to one row');
   assert.equal(await page.getByRole('button', { name: '更多输入选项', exact: true }).count(), 0, 'no manual expansion toggle');
   await editor.click(); await page.waitForTimeout(220);
   await page.getByRole('button', { name: 'Fixture microphone', exact: true }).focus();
-  assert.equal((await shape()).height, compact.height, 'empty toolbar focus keeps one row');
-  await editor.fill('保留当前草稿');
-  await page.locator('.codex-composer-shortcut-trigger').click();
-  await page.locator('.codex-composer-shortcut-menu').waitFor();
-  assert((await shape()).height > compact.height + 20, 'portaled menu keeps its anchor expanded');
+  assert((await shape()).height > compact.height + 20, 'toolbar focus retains the editing session');
+  assert.equal(await page.locator('.opencraft-composer-shortcut-trigger').count(), 0, 'slash commands have no separate footer menu');
+  await editor.fill('/he');
+  await page.getByRole('listbox').waitFor();
+  assert((await shape()).height > compact.height + 20, 'inline command suggestions retain the editing session');
   await page.keyboard.press('Escape');
 
   await editor.fill('保留当前草稿'); await page.waitForTimeout(100);
   assert((await shape()).height > compact.height + 20, 'content expands');
   await page.evaluate(() => (window as any).setNewera(false));
   assert.equal(await editor.innerText(), '保留当前草稿');
-  assert(await same!.evaluate((n: Node) => n === document.querySelector('.codex-composer-editor')), 'same editor node across mode changes');
+  assert(await same!.evaluate((n: Node) => n === document.querySelector('.opencraft-composer-editor')), 'same editor node across mode changes');
   await editor.click();
   await editor.press('ControlOrMeta+A');
   await editor.press('Backspace');
-  await page.waitForFunction(() => document.querySelector<HTMLElement>('.codex-composer-stack')?.dataset.composerEmpty === 'true');
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEmpty === 'true');
   await page.evaluate(() => (window as any).setNewera(true)); await page.waitForTimeout(220);
   await editor.evaluate((node: HTMLElement) => node.blur());
-  assert.equal((await shape()).height, compact.height, JSON.stringify(await page.locator(".codex-composer-stack").evaluate((n: HTMLElement) => ({...n.dataset, text:n.querySelector(".codex-composer-editor")?.textContent}))));
+  await page.waitForFunction(() => document.querySelector<HTMLElement>('.opencraft-composer-stack')?.dataset.composerEditing === 'false');
+  assert.equal((await shape()).height, compact.height, JSON.stringify(await page.locator(".opencraft-composer-stack").evaluate((n: HTMLElement) => ({...n.dataset, text:n.querySelector(".opencraft-composer-editor")?.textContent}))));
   await page.evaluate(() => (window as any).setTouch(false)); await page.waitForTimeout(100);
   assert((await shape()).radius !== "28px", 'compact layout ignores Newera');
   await page.evaluate(() => (window as any).setTouch(true)); await page.waitForTimeout(80);
@@ -122,10 +115,10 @@ try {
   assert.equal(await toggle.getAttribute('aria-checked'), 'true'); await toggle.click(); await page.waitForTimeout(80);
   assert.equal(await page.locator('html').getAttribute('data-touch-newera'), 'off');
   await toggle.click(); await page.waitForTimeout(80);
-  if (width === 390 && palette === 'codex' && mode === 'light') {
+  if (width === 390 && palette === 'opencraftNeutral' && mode === 'light') {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await editor.click();
-    assert.equal((await shape()).height, compact.height);
+    assert((await shape()).height > compact.height + 20, 'reduced motion preserves focus expansion');
     assert.equal(await shell.evaluate((node: HTMLElement) => node.getAnimations().filter(animation => animation.id === "newera-focus-expansion").length), 0);
     await editor.evaluate((node: HTMLElement) => node.blur());
     await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -133,5 +126,5 @@ try {
   if (width === 390) await page.screenshot({ path: `/tmp/newera-${palette}-${mode}.png` });
   assert(original.height > compact.height); assert.deepEqual(errors, []); await page.close();
  }
- console.log(`PASS: Newera ${quick ? 2 : 36} theme/layout combinations; round hit regions/glass pixel change/stable empty focus/no toggle/toolbar focus/type/clear/off/compact; same editor and draft; real Settings toggle; queue glass and accessibility fallback`);
+ console.log(`PASS: Newera ${quick ? 2 : 36} theme/layout combinations; round hit regions/glass pixel change/empty focus expansion/no toggle/toolbar continuity/type/clear/off/compact; same editor and draft; real Settings toggle; queue glass and accessibility fallback`);
 } finally { await browser?.close(); await vite.close(); }

@@ -3,7 +3,7 @@ import { createIntlTestRoot as createRoot } from "./intl-root";
 import { Context } from "@deepseek-ai/cordis";
 import { WebSocketTransport } from "@opencraft/appserver-transport-websocket";
 import { createAppServerWorkbenchRuntime } from "@opencraft/workbench-runtime";
-import { buildCodexThemeCssProperties } from "@opencraft/design-system/theme-engine";
+import { buildOpenCraftThemeCssProperties } from "@opencraft/design-system/theme-engine";
 import { TimelineBlockRendererProvider, TimelineBlockRendererRegistryService } from "@opencraft/timeline-render-react";
 import { ConversationRecoveryNotice } from "../../apps/workbench-web/src/components/conversation-recovery";
 import { createConversationRecoveryDiagnostic } from "../../apps/workbench-web/src/runtime/conversation-recovery-diagnostic";
@@ -16,7 +16,7 @@ await ctx.plugin(TimelineBlockRendererRegistryService);
 await ctx.plugin(BuiltinTimelineRendererPlugin);
 const theme = new URLSearchParams(location.search).get("theme") === "dark" ? "dark" : "light";
 document.documentElement.dataset.theme = theme;
-for (const [key, value] of Object.entries(buildCodexThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
+for (const [key, value] of Object.entries(buildOpenCraftThemeCssProperties(theme))) document.documentElement.style.setProperty(key, value);
 const trace: Record<string, string | number>[] = [];
 const progressTrace: unknown[] = [];
 const runtime = createAppServerWorkbenchRuntime({hostId:"fixture",autoReconnect:true,reconnectDelaysMs:[500,1000,2000],requestTimeoutMs:2500,

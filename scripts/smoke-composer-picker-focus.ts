@@ -13,7 +13,7 @@ try {
   await page.goto(`${vite.resolvedUrls!.local[0]}?pickerFocus=1&mode=${mode}`);
   await page.waitForFunction(()=>typeof(window as any).setTouch==="function");
   await page.evaluate(async newera=>{await(window as any).setTouch(true);await(window as any).setNewera(newera)},newera);
-  const editor=page.locator('.codex-composer-editor'),model=page.locator('.codex-composer-mode--intelligence'),permissions=page.locator('.codex-composer-mode--permissions');
+  const editor=page.locator('.opencraft-composer-editor'),model=page.locator('.opencraft-composer-mode--intelligence'),permissions=page.locator('.opencraft-composer-mode--permissions');
   const menu=page.locator('[role="menu"]');
   await editor.fill('正在编辑的草稿');
   await editor.evaluate(el=>{const sel=getSelection()!;const range=document.createRange();range.setStart(el.firstChild!.firstChild!,2);range.collapse(true);sel.removeAllRanges();sel.addRange(range);(window as any).originalEditor=el;(window as any).blurs=0;el.addEventListener('blur',()=>{(window as any).blurs++})});
@@ -26,17 +26,17 @@ try {
   await page.getByRole('menuitem',{name:'Beta',exact:false}).tap();await assertEditing();
   assert.equal(await page.evaluate(()=>(window as any).composerController.getSnapshot().draft.selections.model),'Beta');
   await page.waitForTimeout(220);
-  const list=page.locator('.codex-composer-intelligence-models');const box=await list.boundingBox();assert(box);
+  const list=page.locator('.opencraft-composer-intelligence-models');const box=await list.boundingBox();assert(box);
   const cdp=await context.newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height-20}]});
   for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height-20-i*12}]});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await page.waitForFunction(()=>(document.querySelector('.codex-composer-intelligence-models')?.scrollTop ?? 0)>0);
+  await page.waitForFunction(()=>(document.querySelector('.opencraft-composer-intelligence-models')?.scrollTop ?? 0)>0);
   console.log("scroll passed");await assertEditing();
-  await permissions.tap();await page.locator('.codex-composer-selection-menu--permissions').waitFor();await assertEditing();
+  await permissions.tap();await page.locator('.opencraft-composer-selection-menu--permissions').waitFor();await assertEditing();
   await page.getByRole('menuitem',{name:'只读',exact:false}).tap();await menu.waitFor({state:'hidden'});await assertEditing();
   // Escape and continued typing keep editing; opening does not change shell geometry.
-  const shell=page.locator('.codex-composer-shell'),before=await shell.boundingBox();
+  const shell=page.locator('.opencraft-composer-shell'),before=await shell.boundingBox();
   await model.tap();await menu.waitFor();await assertEditing();
   assert.deepEqual(await shell.boundingBox(),before);
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});await assertEditing();
@@ -70,9 +70,9 @@ try {
  const context=await browser.newContext({viewport:{width:1280,height:800}});
  const page=await context.newPage();await page.addInitScript("window.__name=value=>value");
  await page.goto(`${vite.resolvedUrls!.local[0]}?pickerFocus=1`);
- const editor=page.locator('.codex-composer-editor'),menu=page.locator('[role="menu"]');
+ const editor=page.locator('.opencraft-composer-editor'),menu=page.locator('[role="menu"]');
  await editor.fill('桌面草稿');
- for(const selector of ['.codex-composer-mode--intelligence','.codex-composer-mode--permissions']){
+ for(const selector of ['.opencraft-composer-mode--intelligence','.opencraft-composer-mode--permissions']){
   await editor.click();await page.locator(selector).click();await menu.waitFor();
   assert(await menu.evaluate(el=>el.contains(document.activeElement)),'mouse uses normal Radix focus');
   await page.keyboard.press('Escape');await menu.waitFor({state:'hidden'});

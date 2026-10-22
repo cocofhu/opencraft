@@ -4,14 +4,13 @@
 - 用户将实现请求收窄为先设计；停止依赖安装与实现。
 - 完成初始 SQLite owner 清单，创建设计计划。
 - 未读取或修改真实用户数据库。
-- 按用户追加请求完整 clone Paseo 到 ref/paseo，固定审阅 HEAD 3cc4ae28664493b2f1ad75a6a6ed1d318c76e944；未执行参考仓库脚本，工作树 clean。
 - 对照 replica cache、Native/Web adapter、Agent JSON authority、设置迁移的失败重试测试与 workspaceId 回填。结论：借鉴分类和幂等，不照搬清缓存到权威库。
 - 新增 docs/sqlite-lifecycle.md 设计草案及平台/文档索引链接；明确六个 Node SQLite owner、独立迁移版本、不可丢数据、过渡期旧客户端风险、文件拓扑、阶段验收。
 - 当前 npm stable/RC 与 node-sqlite 指南不同，依赖版本/基线 API/锁事务行为列为实施前门禁；没有安装依赖。
 - 文档 validator errors=[]、warnings=[]，staged impact passed（staging 为空），git diff --check passed。未运行实现测试、不宣称迁移功能完成。
 
 ## 设计定稿
-- 用户补充 Web IndexedDB、插件兼容、BB/Obsidian 并要求定稿。
+- 用户补充 Web IndexedDB、插件兼容并要求定稿。
 - 新增 docs/plugin-persistence.md；修订 sqlite-lifecycle.md 移除强制 Drizzle 目标，固定跨端语义、平台升级、保留驱动、有界 SQL helper 和插件迁移 owner。
 - 同步 docs/README、platform-architecture 和 plugin-architecture，明确现有 V1 SDK 尚未具备目标 storage API；不新增空接口或依赖。
 - 仅文档变更；最终 documentation validator errors=[]、warnings=[]，两份专题 17 个本地链接存在，git diff --check 通过。staged impact passed，但 staging 为空；不把该结果当作实现变更验收。

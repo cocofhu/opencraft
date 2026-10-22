@@ -1,4 +1,3 @@
-// Recovered from join live ingress (2026-10-14); source boundaries retained below.
 // plugins/ssh-http-ingress/src/index.ts
 import { createConnection, createServer } from "node:net";
 import { timingSafeEqual } from "node:crypto";

@@ -17,6 +17,7 @@ import {
   type ChatDocumentDialect,
 } from "./preprocess";
 import { findStableMarkdownPrefix } from "./streaming/code-boundary";
+import { jsonBlockTokenizer } from "./json-block";
 
 type MarkdownToken = Record<string, unknown>;
 
@@ -243,17 +244,21 @@ function mapInlineTokens(
           nodes.push(...mapText(raw, sourceRange.start));
         }
         break;
-      case "link":
-        nodes.push({
+      case "link": {
+        const { href, title, text: label, tokens: labelTokens } = token;
+        // A link owns its action; label text must not create another action.
+        const labelNodes = mapInlineTokens(
+          tokens(labelTokens), string(label), sourceRange.start, false,
+        );
+        const linkNode: Extract<ChatDocumentNode, { kind: "link" }> = {
           ...emptyBase("link", sourceRange),
-          href: string(token.href),
-          title: typeof token.title === "string" ? token.title : null,
-          // Source-equivalent to Codex renderInlineTokens(..., false): link
-          // labels remain text and cannot contain nested interactive
-          // decorations such as workspace mentions or file citations.
-          children: mapInlineTokens(tokens(token.tokens), string(token.text), sourceRange.start, false),
-        });
+          href: string(href),
+          title: typeof title === "string" ? title : null,
+          children: labelNodes,
+        };
+        nodes.push(linkNode);
         break;
+      }
       case "image":
         nodes.push({
           ...emptyBase("image", sourceRange),
@@ -291,6 +296,18 @@ function mapBlockTokens(
     switch (type) {
       case "space":
         break;
+      case "bareJson": {
+        const prefix = string(token.prefix);
+        if (prefix.trim()) nodes.push({
+          ...emptyBase("paragraph", range(start, prefix)),
+          children: mapInlineTokens(tokens(token.tokens), prefix.trimEnd(), start),
+        });
+        nodes.push({
+          ...emptyBase("code-fence", range(start + prefix.length, string(token.text))),
+          language: "json", code: string(token.text), meta: null,
+        });
+        break;
+      }
       case "paragraph":
       case "text": {
         const directive = parseDirective(raw, sourceRange);
@@ -390,7 +407,6 @@ function mapBlockTokens(
         });
         break;
       case "html":
-        // Codex always treats an isolated HTML break as layout, while all
         // other raw HTML remains inert text unless a typed surface owns it.
         if (/^\s*<br\s*\/?>\s*$/iu.test(raw)) {
           nodes.push(emptyBase("line-break", sourceRange));
@@ -412,63 +428,57 @@ export interface MarkdownLinkMatch {
   readonly path: string;
 }
 
-/** Source-identical scanner used by Codex's composerLink tokenizer. */
+
 export function findMarkdownLink(text: string, startIndex: number): MarkdownLinkMatch | null {
-  let cursor = startIndex;
-  scanLinks: while (cursor < text.length) {
-    const open = text.indexOf("[", cursor);
-    if (open === -1) return null;
-    let close = open + 1;
-    while (close < text.length) {
-      const character = text[close];
-      const next = text[close + 1];
-      if (character === "\n" || character === "\r") {
-        cursor = close + 1;
-        continue scanLinks;
-      }
-      if (character === "\\" && (next === "\\" || (next === "]" && text[close + 2] !== "("))) {
-        close += 2;
-        continue;
-      }
-      if (character === "]") break;
-      close += 1;
-    }
-    if (close >= text.length) return null;
-    if (close === open + 1 || text[close + 1] !== "(") {
-      cursor = close + 1;
+  if (!(startIndex < text.length)) return null;
+  let phase: "search" | "label" | "path" = "search";
+  let opening = -1;
+  let labelEnd = -1;
+  let pathStart = -1;
+  let escaped = false;
+  for (let cursor = Math.max(0, Math.trunc(startIndex)); cursor < text.length; cursor += 1) {
+    if (phase === "search") {
+      const nextOpening = text.indexOf("[", cursor);
+      if (nextOpening < 0) return null;
+      cursor = nextOpening;
+      opening = cursor;
+      escaped = false;
+      phase = "label";
       continue;
     }
-    let end = close + 2;
-    while (end < text.length) {
-      const character = text[end];
-      const next = text[end + 1];
-      if (character === "\n" || character === "\r") {
-        cursor = end + 1;
-        continue scanLinks;
-      }
-      if (character === "\\" && (next === "\n" || next === "\r")) {
-        cursor = end + 2;
-        continue scanLinks;
-      }
-      if (character === "\\" && next !== undefined) {
-        end += 2;
-        continue;
-      }
-      if (character === ")") {
-        if (end === close + 2) {
-          cursor = end + 1;
-          continue scanLinks;
-        }
-        return {
-          start: open,
-          end: end + 1,
-          label: text.slice(open + 1, close),
-          path: text.slice(close + 2, end),
-        };
-      }
-      end += 1;
+    const character = text[cursor];
+    if (character === "\r" || character === "\n") {
+      phase = "search";
+      escaped = false;
+      continue;
     }
-    return null;
+    // A ]( label boundary wins even after a backslash. Destination closing
+    // parentheses, in contrast, can be shielded by a preceding escape.
+    if (phase === "label" && character === "]" && text[cursor + 1] === "(") {
+      labelEnd = cursor;
+      pathStart = cursor + 2;
+      phase = cursor > opening + 1 ? "path" : "search";
+      escaped = false;
+      cursor += 1;
+      continue;
+    }
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (phase === "label" && character === "]") phase = "search";
+    if (phase === "path" && character === ")") {
+      if (cursor > pathStart) return {
+        start: opening, end: cursor + 1,
+        label: text.slice(opening + 1, labelEnd),
+        path: text.slice(pathStart, cursor),
+      };
+      phase = "search";
+    }
   }
   return null;
 }
@@ -548,28 +558,34 @@ const composerLinkTokenizer: TokenizerExtension = {
   },
 };
 
-/** Source-equivalent Codex delimiters: dollar pairs are display-only blocks. */
+
 const mathBlockTokenizer: TokenizerExtension = {
   name: "math",
   level: "block",
   start(source) {
-    // Marked asks every extension about each remaining paragraph suffix.
-    // Most prose has no display-math delimiter; avoid a regex scan of every
-    // suffix while retaining the exact boundary rule when a delimiter exists.
-    if (!source.includes("\\[") && !source.includes("$$")) return undefined;
-    const match = /(?:^|\n)[ \t]*(?:\\\[|\$\$)/u.exec(source);
-    return match?.index;
+    if (!source.includes("$$") && !source.includes("\\[")) return undefined;
+    let candidate = 0;
+    let eligible = true;
+    for (let position = 0; position < source.length; position += 1) {
+      if (eligible && (source.startsWith("$$", position) || source.startsWith("\\[", position))) return candidate;
+      const character = source[position];
+      if (character === "\n") {
+        candidate = position;
+        eligible = true;
+      } else if (character !== " " && character !== "\t") eligible = false;
+    }
+    return undefined;
   },
   tokenizer(source) {
-    if (source.startsWith("\\[")) {
-      const end = source.indexOf("\\]", 2);
-      if (end === -1 || !/^[ \t]*(?:\n|$)/u.test(source.slice(end + 2))) return undefined;
-      return { type: "math", raw: source.slice(0, end + 2), text: source.slice(2, end).trim(), display: true } as Token;
-    }
-    if (!source.startsWith("$$")) return undefined;
-    const end = source.indexOf("$$", 2);
-    if (end === -1 || !/^[ \t]*(?:\n|$)/u.test(source.slice(end + 2))) return undefined;
-    return { type: "math", raw: source.slice(0, end + 2), text: source.slice(2, end).trim(), display: true } as Token;
+    const closing = source.startsWith("$$") ? "$$" : source.startsWith("\\[") ? "\\]" : null;
+    if (closing === null) return undefined;
+    const boundary = source.indexOf(closing, 2);
+    if (boundary < 0) return undefined;
+    let remainder = boundary + closing.length;
+    while (source[remainder] === " " || source[remainder] === "\t") remainder += 1;
+    if (remainder < source.length && source[remainder] !== "\n") return undefined;
+    const raw = source.substring(0, boundary + closing.length);
+    return { type: "math", raw, text: raw.substring(2, raw.length - 2).trim(), display: true } as Token;
   },
 };
 
@@ -577,16 +593,19 @@ const mathInlineTokenizer: TokenizerExtension = {
   name: "math",
   level: "inline",
   start(source) {
-    const index = source.indexOf("\\(");
-    return index === -1 ? undefined : index;
+    const position = source.indexOf("\\(");
+    return position < 0 ? undefined : position;
   },
   tokenizer(source) {
     if (!source.startsWith("\\(")) return undefined;
-    const end = source.indexOf("\\)", 2);
-    if (end === -1) return undefined;
-    const raw = source.slice(0, end + 2);
-    if (raw.includes("\n")) return undefined;
-    return { type: "math", raw, text: source.slice(2, end).trim(), display: false } as Token;
+    for (let position = 2; position < source.length; position += 1) {
+      if (source[position] === "\n") return undefined;
+      if (source.startsWith("\\)", position)) {
+        const raw = source.substring(0, position + 2);
+        return { type: "math", raw, text: raw.substring(2, raw.length - 2).trim(), display: false } as Token;
+      }
+    }
+    return undefined;
   },
 };
 
@@ -611,14 +630,14 @@ const assistantMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, jsonBlockTokenizer],
 });
 
 const userMessageMarked = new Marked({
   gfm: true,
   breaks: true,
   tokenizer: hanEmphasisTokenizer,
-  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer],
+  extensions: [mathBlockTokenizer, mathInlineTokenizer, userMessageImageTokenizer, composerLinkTokenizer, jsonBlockTokenizer],
 });
 
 function lex(markdown: string, dialect: ChatDocumentDialect): readonly MarkdownToken[] {
@@ -663,9 +682,10 @@ export class ChatDocumentCompiler {
     const preprocessed = preprocessChatMarkdown(dialectSource, { streaming: options.streaming });
     const openFenceStart = preprocessed.openFence?.start ?? null;
     // Reference definitions can reinterpret earlier blocks; unresolved shortcuts
-    // also matter. Conservative bracket fallback includes images/inline links.
+    // also matter. Braces can turn earlier Markdown blocks into one JSON block
+    // when a later closing delimiter arrives; do not freeze those prefixes.
     // Marked normalizes CRLF internally, so raw offsets cannot be reused here.
-    if (options.streaming !== true || /[\[\r]/u.test(preprocessed.markdown)
+    if (options.streaming !== true || /[\[{\r]/u.test(preprocessed.markdown)
       || preprocessed.markdown.includes("$$")) {
       const parsed: ParsedChatDocument = {
         source,

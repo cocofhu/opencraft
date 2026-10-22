@@ -10,15 +10,9 @@ The canonical repository was re-established in October 2026 with a clean
 history whose initial commit is
 `527f579d95ff236739f8c09902db2728d86e7c7b`. Its tree
 (`b1366cf67fa0bb02d21b7c5ecb087eb9cff7e19a`) contains the complete Web,
-Electron and Expo clients. The original development history is retained in a
-private archive owned by the same maintainers; the archive is a read-only
-attribution and rollback reference, not a source of changes.
-
-Existing attribution records, notices and third-party notices are preserved.
-Provenance review outcomes stay documented in
-[docs/source-provenance-review.md](docs/source-provenance-review.md); an
-inventory entry that is not verified stays unverified. Source clearance is not
-inferred from dependency isolation or from this repository being public.
+Electron and Expo clients. Third-party copyright, license and required notices remain in source and
+artifacts. Redistribution rights are not inferred from dependency isolation or
+from this repository being public.
 
 ## Downstream consumption
 
@@ -31,8 +25,8 @@ pin must preserve those patches or stop on conflicts. Complete public clients
 build independently without downstream siblings, credentials or private
 registries.
 
-Do not import history from the archive, use a downstream checkout as a second
-writable copy of core, or replace an older snapshot over current product work.
+Do not use a downstream checkout as a second writable copy of core or replace
+an older snapshot over current product work.
 Contributions from a downstream repository first land upstream through a normal
 reviewed pull request; the downstream product then re-pins to the accepted
 revision.

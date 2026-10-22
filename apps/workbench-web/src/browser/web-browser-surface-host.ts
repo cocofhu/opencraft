@@ -9,7 +9,7 @@ import {
   installPreviewBridgeRuntime,
   type PreviewBridgeChildMessage,
 } from "@opencraft/browser-preview-bridge";
-import type { PresentationHostPort } from "./codex-presentation-host";
+import type { PresentationHostPort } from "./opencraft-presentation-host";
 
 export interface BrowserSurfaceEvents {
   onNewWindow?(url: string, background: boolean): void;

@@ -7,6 +7,11 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { startHeadlessServer } from '../scripts/headless-server.mjs';
 import { buildHeadlessBundle } from '../scripts/package-headless-linux.mjs';
+import { loadLocalMachineAccess } from '../scripts/local-machine-access.mjs';
+import { randomBytes } from 'node:crypto';
+import { networkInterfaces } from 'node:os';
+import { WebSocket, WebSocketServer } from 'ws';
+import { once } from 'node:events';
 
 async function fixture(t) {
   const runtime = fileURLToPath(new URL('../.runtime/', import.meta.url));
@@ -73,6 +78,52 @@ test('public listener accepts explicit membership protection without requiring a
   const app = await startHeadlessServer({ ...f.options, host: '0.0.0.0', accessControl: true }); t.after(() => app.close());
   assert.equal((await fetch(app.url)).status, 401, 'no identity provider or member cannot downgrade to anonymous admission');
   assert.equal((await fetch(app.url + '/__opencraft_actors/me')).status, 401);
+});
+
+test('local machine ingress proves the socket source and preserves remote and Actor admission', async t => {
+  const f = await fixture(t), path = join(f.root, 'local-access');
+  await writeFile(path, randomBytes(32).toString('hex'), { mode: 0o600 });
+  const access = await loadLocalMachineAccess(path);
+  const request = (host = '127.0.0.1:80', peer = '127.0.0.1', target = '127.0.0.1', extra = {}) => ({
+    method: 'GET', url: '/', headers: { host, ...extra }, socket: { remoteAddress: peer, localAddress: target, localPort: 80 },
+  });
+  const good = request(); assert.equal(access.forward(good), true);
+  assert.equal(access.origin(good), 'http://127.0.0.1');
+  for (const rejected of [request('127.0.0.1:80', '198.51.100.2'), request('evil.test'),
+    request('127.0.0.1:81'), request('127.0.0.1:80', '127.0.0.1', '127.0.0.1', { origin: 'https://evil.test' }),
+    request('127.0.0.1:80', '127.0.0.1', '127.0.0.1', { 'x-forwarded-for': '127.0.0.1' }),
+    request('127.0.0.1:80', '127.0.0.1', '127.0.0.1', { 'sec-fetch-site': 'cross-site' })]) {
+    rejected.headers['x-opencraft-local-machine-proof'] = good.headers['x-opencraft-local-machine-proof'];
+    assert.equal(access.forward(rejected), false); assert.equal(rejected.headers['x-opencraft-local-machine-proof'], undefined);
+  }
+  const address = Object.values(networkInterfaces()).flat().find(entry => entry?.family === 'IPv4' && !entry.internal)?.address;
+  if (address) { const ip = request(address, address, address); assert.equal(access.forward(ip), true);
+    ip.socket.remoteAddress = '127.0.0.1'; assert.equal(access.origin(ip), 'http://' + address); }
+  assert.equal(access.origin({ ...good, url: '/different' }), null);
+  assert.equal(access.origin({ ...good, socket: { remoteAddress: '198.51.100.2' } }), null);
+  await writeFile(path, randomBytes(32).toString('hex'), { mode: 0o600 });
+  assert.equal((await loadLocalMachineAccess(path)).origin(good), null, 'a replacement key retires old proofs');
+
+  const backend = new WebSocketServer({ host: '127.0.0.1', port: 0 }); await once(backend, 'listening');
+  t.after(() => new Promise(resolve => backend.close(resolve)));
+  backend.on('connection', socket => socket.on('message', data => socket.send(data)));
+  const app = await startHeadlessServer({ ...f.options, localAccessFile: path, accessControl: true,
+    startAgentHost: async () => ({ websocketUrl: 'ws://127.0.0.1:' + backend.address().port, close: async () => {} }),
+  }); t.after(() => app.close());
+  const current = await loadLocalMachineAccess(path);
+  const proofFor = (url, method = 'GET') => { const parsed = new URL(app.url), req = { method, url, headers: { host: parsed.host },
+    socket: { remoteAddress: '127.0.0.1', localAddress: '127.0.0.1', localPort: Number(parsed.port) } };
+    assert.equal(current.forward(req), true); return req.headers; };
+  assert.equal((await fetch(app.url)).status, 401);
+  assert.equal((await fetch(app.url, { headers: proofFor('/') })).status, 200);
+  assert.equal((await fetch(app.url + '/__opencraft_actors/me', { headers: proofFor('/__opencraft_actors/me') })).status, 401, 'anonymous workspace is not a human Actor');
+  const probe = proofFor('/assets/lazy.js');
+  assert.equal((await fetch(app.url + '/__opencraft_access/admission', { headers: { ...probe, 'x-opencraft-relay-probe-method': 'GET', 'x-opencraft-relay-probe-path': '/assets/lazy.js' } })).status, 204);
+  assert.equal((await fetch(app.url + '/__opencraft_access/admission', { headers: { ...probe, 'x-opencraft-relay-probe-method': 'POST', 'x-opencraft-relay-probe-path': '/assets/lazy.js' } })).status, 401);
+  const socket = new WebSocket(app.url.replace('http:', 'ws:') + '/appserver', { headers: { ...proofFor('/appserver'), origin: app.url } });
+  await once(socket, 'open');
+  const reply = once(socket, 'message'); socket.send('local-proof-echo'); assert.equal((await reply)[0].toString(), 'local-proof-echo');
+  socket.close(); await once(socket, 'close');
 });
 
 test('an identity disposal failure is reported after all owned resources and directory lock are released', async t => {

@@ -3,7 +3,7 @@ import test from "node:test";
 import { DictationTranscriptLedger } from "../plugins/voice-input/src/dictation-transcript-ledger.js";
 import { NativeSpeechInputProvider } from "../plugins/voice-input/src/native-speech-provider.js";
 import { BrowserSpeechInputProvider } from "../plugins/voice-input/src/speech-input-provider.js";
-import { resolveDictationKeyAction } from "../packages/codex-composer/src/dictation-keyboard.js";
+import { resolveDictationKeyAction } from "../packages/composer-editor/src/dictation-keyboard.js";
 
 test("partial revision cannot replace confirmed history or another utterance", () => {
   const ledger = new DictationTranscriptLedger();

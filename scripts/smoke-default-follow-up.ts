@@ -6,22 +6,22 @@ import { createServer } from "vite";
 const source = `
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {CodexComposer} from '@opencraft/codex-composer';
+import {OpenCraftComposer} from '@opencraft/composer-editor';
 import {createComposerController} from '@opencraft/composer-core';
 import {ChatSettings} from '/apps/workbench-web/src/components/chat-settings.tsx';
 import {UiPreferencesProvider,openWorkbenchUiPreferences} from '/apps/workbench-web/src/runtime/ui-preferences-runtime.tsx';
 import {useDefaultFollowUpAction} from '/apps/workbench-web/src/runtime/use-default-follow-up-action.ts';
 import {WorkbenchLocaleController,WorkbenchIntlProvider} from '/apps/workbench-web/src/i18n/workbench-locale.tsx';
-import {buildCodexThemeCssProperties,velaThemePalette} from '/packages/design-system/src/theme-engine.ts';
+import {buildOpenCraftThemeCssProperties,opencraftCanvasThemePalette} from '/packages/design-system/src/theme-engine.ts';
 import '/apps/workbench-web/src/styles/app.scss';
-Object.entries(buildCodexThemeCssProperties('light',velaThemePalette.light)).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+Object.entries(buildOpenCraftThemeCssProperties('light',opencraftCanvasThemePalette.light)).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
 const preferences=await openWorkbenchUiPreferences();
 const locale=new WorkbenchLocaleController(preferences,{ideLocale:'en-US'});await locale.initialize();
 const controller=createComposerController({type:'existing-thread',key:{hostId:'fixture',threadId:'one'}},{now:Date.now,createId:()=>crypto.randomUUID()});
 const calls=[];
 function App(){const[active,setActive]=useState(true);const action=useDefaultFollowUpAction();
-window.fixture={setActive,calls,flush:()=>preferences.flush(),draft:()=>controller.getSnapshot().draft,setTheme:mode=>Object.entries(buildCodexThemeCssProperties(mode,velaThemePalette[mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))};
-return <main style={{padding:20,maxWidth:750}}><ChatSettings/><CodexComposer controller={controller} defaultFollowUpAction={action} isStreaming={active} selectionCatalog={{models:[{id:'fixture-model',value:'fixture-model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={(intent,context)=>{calls.push({text:intent.plainText,action:context.followUpAction});return true}} onCancel={()=>{}}/></main>}
+window.fixture={setActive,calls,flush:()=>preferences.flush(),draft:()=>controller.getSnapshot().draft,setTheme:mode=>Object.entries(buildOpenCraftThemeCssProperties(mode,opencraftCanvasThemePalette[mode])).forEach(([k,v])=>document.documentElement.style.setProperty(k,v))};
+return <main style={{padding:20,maxWidth:750}}><ChatSettings/><OpenCraftComposer controller={controller} defaultFollowUpAction={action} isStreaming={active} selectionCatalog={{models:[{id:'fixture-model',value:'fixture-model',label:'Model',description:null,isDefault:true,defaultEffort:null,efforts:[]}],permissionProfiles:[]}} onSubmit={(intent,context)=>{calls.push({text:intent.plainText,action:context.followUpAction});return true}} onCancel={()=>{}}/></main>}
 createRoot(document.getElementById('root')).render(<UiPreferencesProvider runtime={preferences}><WorkbenchIntlProvider controller={locale} target={document.documentElement}><App/></WorkbenchIntlProvider></UiPreferencesProvider>);
 `;
 
@@ -54,15 +54,15 @@ try {
     page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.goto(origin);
     const toggle = page.getByRole("switch");
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     const action = () => page.locator("[data-composer-primary-action]").getAttribute("data-composer-primary-action");
     await toggle.waitFor();
     assert.equal(await toggle.getAttribute("aria-checked"), "false");
     await editor.fill("preserved draft");
     assert.equal(await action(), "queue");
     await page.evaluate(() => {
-      (window as any).originalEditor = document.querySelector(".codex-composer-editor");
-      const text = document.createTreeWalker(document.querySelector(".codex-composer-editor")!, NodeFilter.SHOW_TEXT).nextNode()!;
+      (window as any).originalEditor = document.querySelector(".opencraft-composer-editor");
+      const text = document.createTreeWalker(document.querySelector(".opencraft-composer-editor")!, NodeFilter.SHOW_TEXT).nextNode()!;
       const range = document.createRange(); range.setStart(text, 2); range.setEnd(text, 5);
       getSelection()!.removeAllRanges(); getSelection()!.addRange(range);
     });
@@ -74,7 +74,7 @@ try {
     await second.getByRole("switch").click();
     await page.waitForFunction(() => document.querySelector('[data-composer-primary-action]')?.getAttribute('data-composer-primary-action') === 'queue');
     assert.equal(await editor.innerText(), "preserved draft");
-    assert.equal(await page.evaluate(() => (window as any).originalEditor === document.querySelector(".codex-composer-editor")), true);
+    assert.equal(await page.evaluate(() => (window as any).originalEditor === document.querySelector(".opencraft-composer-editor")), true);
     assert.equal(await page.evaluate(() => getSelection()!.toString()), "ese");
     await page.locator("[data-composer-primary-action]").click();
     assert.equal(await page.evaluate(() => (window as any).fixture.calls.at(-1).action), "queue");

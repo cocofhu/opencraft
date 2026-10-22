@@ -46,7 +46,6 @@ export function findAnchorAtOrBefore(
   return match;
 }
 
-/** Codex semantics: the first indexed message currently intersecting the viewport. */
 export function findFirstVisibleAnchor(
   anchors: readonly ConversationNavigationAnchor[],
   visibleItemIds: ReadonlySet<string>,

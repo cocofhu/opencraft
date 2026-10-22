@@ -21,7 +21,7 @@ const now=new Date();now.setHours(12,0,0,0);const today=now.getTime()/1000;
 const base={project:'opencraft',status:'ready',connectionHostId:'host',connectionHostLabel:'Local',...legacyDirectServerProjectionFromHost({hostId:'host',hostKind:'local',label:'Local'})};
 const initial=[...Array.from({length:12},(_,i)=>({...base,id:'done'+i,title:'Done '+i,updatedAt:today-i,createdAt:1,unread:true})),
 {...base,id:'older-run',title:'Older running',status:'running',createdAt:10,updatedAt:today-86400},
-{...base,id:'newer-run',title:'Newer running',status:'running',createdAt:20,updatedAt:today-86400},
+{...base,id:'newer-run',title:'Newer running',status:'running',createdAt:20,updatedAt:today-86400+1},
 {...base,id:'pin',title:'Pinned running',status:'running',pinned:true,createdAt:1,updatedAt:today-86400},
 {...base,id:'wait',title:'Waiting',status:'review',createdAt:1,updatedAt:today}];
 function Fixture(){const [rows,setRows]=React.useState(initial);const [selected,select]=React.useState('done0');
@@ -41,7 +41,7 @@ try {
   for(const touch of [false,true]) for(const theme of ['light','dark']) {
     const page=await browser.newPage({viewport:{width:touch?390:1000,height:1000},hasTouch:touch,isMobile:touch});
     const errors:string[]=[]; page.on('pageerror',(e:Error)=>errors.push(e.message));
-    await page.addInitScript(t=>{(window as any).__name=(v:any)=>v;localStorage.setItem('vela.appearance-theme',t);},theme);
+    await page.addInitScript(t=>{(window as any).__name=(v:any)=>v;localStorage.setItem('opencraft.appearance-theme',t);},theme);
     await page.goto('http://127.0.0.1:'+(vite.httpServer!.address() as any).port);
     const recent=page.getByRole('region',{name:'Recent',exact:true});
     const rows=recent.locator('.sidebar-activity-item');
@@ -54,7 +54,8 @@ try {
     const patch=async(id:string,values:object)=>{await page.evaluate(([id,v])=>(window as any).patch(id,v),[id,values]);};
     await patch('older-run',{updatedAt:new Date().setHours(20,0,0,0)/1000});
     await page.waitForFunction(()=>document.querySelector('[data-selected]')?.textContent==='done0');
-    assert.match((await order())[0],/Newer running/);
+    await page.waitForFunction(()=>document.querySelector('[aria-label="Recent"] .sidebar-activity-item')?.textContent?.includes('Older running'));
+    assert.match((await order())[0],/Older running/);
     await patch('newer-run',{status:'ready',updatedAt:new Date().setHours(21,0,0,0)/1000});
     await page.waitForFunction(()=>document.querySelector('[aria-label="Recent"] .sidebar-activity-item')?.textContent?.includes('Older running'));
     text=await order();assert.match(text[0],/Older running/);assert.match(text[1],/Newer running/);
@@ -63,8 +64,11 @@ try {
     await page.waitForFunction(()=>document.querySelector('[aria-label="Recent"] .sidebar-activity-item')?.textContent?.includes('Newer running'));
     assert.ok(!(await order()).some(t=>t.includes('Older running')),'completed old row falls outside first page');
     await recent.getByRole('button',{name:'Show more',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Recent"] .sidebar-activity-item').length===14);
     assert.equal(await rows.count(),14);assert.match((await order()).at(-1)!,/Older running/);
-    await recent.getByRole('button',{name:'Show less',exact:true}).click();assert.equal(await rows.count(),10);
+    await recent.getByRole('button',{name:'Show less',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Recent"] .sidebar-activity-item').length===10);
+    assert.equal(await rows.count(),10);
     assert.equal(await page.locator('[data-selected]').textContent(),'done0');
     if(touch) await rows.first().tap(); else await rows.first().click();
     await page.waitForFunction(()=>document.querySelector('[data-selected]')?.textContent==='newer-run');

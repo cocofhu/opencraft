@@ -73,9 +73,12 @@ try {
     await target.waitFor({ timeout: 30_000 });
     await target.click();
     await page.getByRole("menuitem").filter({ hasText: "Remote UI fixture" }).waitFor();
+    const machines = page.locator(".new-thread-host-menu").getByRole("menuitem");
+    assert.doesNotMatch(await machines.first().innerText(), /Remote UI fixture/u,
+      "deployment-owned machine must precede SSH before identity is available");
     await page.locator(".new-thread-host-menu").getByRole("menuitem").filter({ hasText: "Remote UI fixture" }).click();
     await page.waitForFunction(() => document.querySelector('[aria-label="Work in"]')?.textContent?.includes("Remote UI fixture") && document.querySelector('[aria-label="Work in"] .workbench-connection-status')?.getAttribute("data-phase") === "ready", undefined, { timeout: 30_000 });
-    const editor = page.locator(".codex-composer-editor");
+    const editor = page.locator(".opencraft-composer-editor");
     await editor.fill("Draft survives target discovery");
     await target.click(); await page.keyboard.press("Escape");
     assert.equal(await editor.innerText(), "Draft survives target discovery");
@@ -111,11 +114,11 @@ try {
     await page.getByText("Historical remote answer", { exact: true }).waitFor({ timeout: 30_000 });
     if (goalFixture) await page.getByRole("button", { name: /正在推进目标/u }).waitFor();
     assert.equal(await page.getByText("Historical remote question", { exact: true }).count(), 1);
-    await page.locator(".codex-composer-editor").waitFor();
+    await page.locator(".opencraft-composer-editor").waitFor();
     if (queueCapability) {
-      const activeEditor = page.locator(".codex-composer-editor");
+      const activeEditor = page.locator(".opencraft-composer-editor");
       const text = `Held queue ${mobile ? "touch" : "desktop"} ${colorScheme}`;
-      const row = page.locator(".codex-composer-queue-item").filter({ hasText: text });
+      const row = page.locator(".opencraft-composer-queue-item").filter({ hasText: text });
       await activeEditor.fill(text);
       await page.getByRole("button", { name: "Queue follow-up", exact: true }).click();
       await row.waitFor();
@@ -126,7 +129,7 @@ try {
       assert.equal(add.params.threadId, "ssh-ui-thread");
       assert.equal(add.params.input[0].text, text);
       children.get("ssh:fixture")!.send({ fixtureAction: "release-queue-add" });
-      await page.waitForFunction((preview: string) => Array.from(document.querySelectorAll(".codex-composer-queue-item"))
+      await page.waitForFunction((preview: string) => Array.from(document.querySelectorAll(".opencraft-composer-queue-item"))
         .some(row => row.textContent?.includes(preview) && !row.querySelector<HTMLButtonElement>('[aria-label="Delete queued message"]')?.disabled), text);
       // Detaching the View cannot own the Host queue. Rehydrate through the
       // actual runtime/list request rather than seeding a Composer prop.
@@ -146,19 +149,19 @@ try {
       }
       await row.waitFor({ state: "hidden" });
     } else if (activeFixture) {
-      const activeEditor = page.locator(".codex-composer-editor");
+      const activeEditor = page.locator(".opencraft-composer-editor");
       const sent = calls.filter(call => call.hostId === "ssh:fixture" && call.method === "turn/steer").length;
       await activeEditor.fill("Synthetic native follow-up");
       const steer = page.getByRole("button", { name: "Steer active response", exact: true });
       await steer.waitFor();
       assert.equal(await steer.getAttribute("title"), "Steer active response", "no unavailable inverse-Queue shortcut hint");
       await steer.click();
-      await activeEditor.locator(".codex-composer-placeholder").waitFor();
+      await activeEditor.locator(".opencraft-composer-placeholder").waitFor();
       assert.doesNotMatch(await activeEditor.innerText(), /Synthetic native follow-up/u);
       await assertEventually(() => calls.filter(call => call.hostId === "ssh:fixture" && call.method === "turn/steer").length === sent + 1);
       await activeEditor.fill("Synthetic shortcut follow-up");
       await activeEditor.press("Control+Enter");
-      await activeEditor.locator(".codex-composer-placeholder").waitFor();
+      await activeEditor.locator(".opencraft-composer-placeholder").waitFor();
       assert.doesNotMatch(await activeEditor.innerText(), /Synthetic shortcut follow-up/u);
       await assertEventually(() => calls.filter(call => call.hostId === "ssh:fixture" && call.method === "turn/steer").length === sent + 2);
     }

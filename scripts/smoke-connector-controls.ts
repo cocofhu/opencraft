@@ -52,9 +52,9 @@ try {
   page.on("pageerror", (e: Error) => errors.push(e.message));
   await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as any).port}/?host=ws://127.0.0.1:${hostPort}`);
   const open = async (targetPage = page) => {
-    await targetPage.locator(".codex-composer-add-menu").waitFor({ state: "hidden" }).catch(() => undefined);
+    await targetPage.locator(".opencraft-composer-add-menu").waitFor({ state: "hidden" }).catch(() => undefined);
     await targetPage.getByRole("button", { name: "Add", exact: true }).click({ force: true });
-    await targetPage.locator(".codex-composer-add-menu").waitFor();
+    await targetPage.locator(".opencraft-composer-add-menu").waitFor();
     const trigger = targetPage.getByRole("menuitem", { name: "Connectors", exact: true });
     await trigger.hover({ force: true });
     await targetPage.locator(".connector-quick-surface--submenu").waitFor();
@@ -69,7 +69,7 @@ try {
   await open();
   await page.screenshot({ path: `${output}/add-menu-light.png` });
   await page.locator('.connector-quick-menu__row[aria-label="Isolated Documents，Connect"]').click();
-  await page.locator(".codex-composer-add-menu").waitFor({ state: "hidden" });
+  await page.locator(".opencraft-composer-add-menu").waitFor({ state: "hidden" });
   await page.waitForFunction(() => Object.values((window as any).connectorProbe.snapshot().states).some((state: any) => state.phase === "authorizing"));
   await open();
   await page.evaluate(() => {

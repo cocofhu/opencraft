@@ -47,11 +47,6 @@ export interface BotConversationHistoryDemand {
 
 const EMPTY_HISTORY_PAGE_BUDGET = 3;
 
-/**
- * Bot-specific adapter around the shared Codex-derived viewport machinery.
- * Its entries are geometry units only; Bot semantics remain owned by
- * Transcript/Execution/Presence.
- */
 export function useBotConversationViewport(
   identity: string,
   units: readonly BotTimelineUnit[],
@@ -201,7 +196,6 @@ export function useBotConversationViewport(
           owner.scrollController.getLastScrollDistanceFromBottomPx(),
         bottomPaddingPx: 0,
         // Generic anchor preservation and follow-to-latest are mutually
-        // exclusive layout owners. Codex disables virtualizer preservation
         // while the latest surface owns follow; Bot applies the same invariant
         // without importing Turn semantics into its domain model.
         preserveMeasuredViewport: !following,

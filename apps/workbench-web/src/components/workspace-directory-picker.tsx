@@ -24,8 +24,7 @@ export interface WorkspaceDirectoryPickerProps {
 }
 
 /**
- * Browser equivalent of Codex Desktop's native local-project dialog. It
- * browses the AppServer filesystem namespace; it never uploads a browser
+ * Browses the AppServer filesystem namespace; it never uploads a browser
  * directory or treats a DOM FileSystemHandle as a server workspace.
  */
 export function WorkspaceDirectoryPicker({
