@@ -1,3 +1,5 @@
+@use "@opencraft/design-system/controls.web" as controls;
+
 .toolbar-dock__capacity-probe { position: absolute; width: var(--size-toolbar-dock-action); height: 0; visibility: hidden; pointer-events: none; }
 .toolbar-dock { display: flex; align-items: center; gap: var(--gap-toolbar-dock); }
 .toolbar-dock__item { display: flex; align-items: center; }
@@ -21,7 +23,9 @@
 .toolbar-dock__grip, .toolbar-dock__toggle {
   display: grid; place-items: center; width: var(--height-toolbar-pane); height: var(--height-toolbar-pane);
   border: 0; border-radius: var(--radius-control); color: var(--color-text-secondary); background: transparent;
-  &:hover { background: var(--color-background-tertiary-hover); }
+  @include controls.hover-capable {
+    &:hover { background: var(--color-background-button-tertiary-hover); }
+  }
 }
 .toolbar-dock__grip { cursor: grab; touch-action: none; }
 .toolbar-dock__choice[data-dragging] { opacity: 0; }
