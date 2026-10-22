@@ -2502,3 +2502,13 @@ form submission using the input's composition lifecycle; ignoring a composing
 keydown alone does not prevent the browser from submitting a form. Ordinary
 Enter and Escape retain their existing answer and dismissal actions once
 composition has ended.
+
+Question and option-picker inputs leave compatibility keyCode 229 with the input
+method, including the final noncomposing Enter or Escape after compositionend.
+The option-picker input also prevents that Enter's implicit form submission;
+the original composition flag still gates programmatic submits during preedit.
+Ordinary Enter submits or advances and ordinary Escape cancels through the
+existing response owner. The original question-extensions smoke covers native
+composition, both compatibility keys, unchanged input identity/focus/draft and
+ordinary actions on desktop/touch in both themes, retaining its full plan,
+multi-question, request replacement, option and setup checks.

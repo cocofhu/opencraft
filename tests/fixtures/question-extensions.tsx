@@ -3,7 +3,7 @@ import { ConversationPendingInteractionPanel } from "../../apps/workbench-web/sr
 import { createIntlTestRoot as createRoot } from "./intl-root";
 import "../../apps/workbench-web/src/styles/app.scss";
 import { initializeAppearanceTheme, setThemePreference } from "../../apps/workbench-web/src/appearance-theme";
-initializeAppearanceTheme(); setThemePreference("light");
+initializeAppearanceTheme(); setThemePreference(new URLSearchParams(location.search).get("theme") === "dark" ? "dark" : "light");
 (window as any).answers = [];
 const block: any = { id: "question", type: "question", requestId: "request", method: "item/tool/requestUserInput", state: "pending", questions: [{ id: "q", header: "Plan review", prompt: "Choose steps", multiSelect: true, detail: "# Full fixture plan\n\nVerify the **complete** result before delivery.", intent: { kind: "plan-review", approve: "Verify" }, isOther: true, isSecret: false, options: [{ id: "a", label: "Verify", description: "Check behavior" }, { id: "b", label: "Deliver", description: "Finish delivery" }] }] };
 function Demo() {

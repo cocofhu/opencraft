@@ -213,7 +213,7 @@ function QuestionBlock({ block }: { block: Extract<TimelineBlock, { type: "quest
   }, [completeCurrentQuestion, draft, question, updateDraft]);
   const submitCurrent = useCallback(() => completeCurrentQuestion(drafts), [completeCurrentQuestion, drafts]);
   const handleKeyDown = useCallback((event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.defaultPrevented || event.nativeEvent.isComposing || question === undefined) return;
+    if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 || question === undefined) return;
     const inputTarget = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -368,7 +368,7 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
 
   return (
     <section className="thread-interaction-card thread-option-picker" data-interaction-kind="option-picker" data-state={block.state} onKeyDown={(event) => {
-      if (event.defaultPrevented || event.nativeEvent.isComposing) return;
+      if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
       if (event.key === "Escape") {
         event.preventDefault();
         reply("dismiss");
@@ -403,6 +403,11 @@ function OptionPickerBlock({ block }: { block: Extract<TimelineBlock, { type: "o
             disabled={submission.disabled}
             onChange={(event) => setFreeformText(event.currentTarget.value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.keyCode === 229) {
+                // Prevent an implicit form submission after compositionend too.
+                if (event.key === "Enter") event.preventDefault();
+                return;
+              }
               if (event.defaultPrevented || event.nativeEvent.isComposing) return;
               if (event.key === "Enter") {
                 event.preventDefault();
