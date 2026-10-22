@@ -2103,3 +2103,5 @@ streaming and closing. Completion cannot remove a focused control or reset local
 horizontal scrolling. Open code stays plain; only a complete fence enables
 copying, SVG preview and near-viewport syntax enhancement. Highlighting changes
 presentation without changing the canonical source or replacing the surface.
+
+- Activity disclosure has one keyed content list for persistent surfaces: a transcript or MCP App appears once, keeps its chronological expanded position, and a visible App retains the same iframe and input across detail toggles. A realtime handoff starts a fresh response feedback scope, so earlier running work cannot suppress its Thinking placeholder.

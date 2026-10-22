@@ -120,6 +120,21 @@ try {
     await page.evaluate(()=>window.fixture.setAvailable(true));
     await app.locator("#result").filter({hasText:'"count":2'}).waitFor();
     assert.equal(await app.locator("#isolation").textContent(),"isolated");
+    const appFrame = await page.locator("iframe").elementHandle();
+    await app.locator("body").evaluate(element => {
+      const input = document.createElement("input");
+      input.id = "disclosure-draft";
+      element.append(input);
+    });
+    await app.locator("#disclosure-draft").fill("Keep this App input");
+    const details = page.locator(".thread-agent-activity__turn-toggle > button");
+    for (let toggle = 0; toggle < 4; toggle++) {
+      await details.click();
+      assert.equal(await page.locator("iframe").count(), 1, "expanded details must not duplicate the App");
+      assert.equal(await appFrame!.evaluate(element => element.isConnected), true, "detail toggles retain the original iframe");
+      assert.equal(await app.locator("#disclosure-draft").inputValue(), "Keep this App input");
+    }
+    await app.locator("#disclosure-draft").evaluate(element => element.remove());
     const initialHeight = await page.locator("iframe").evaluate(element=>element.getBoundingClientRect().height);
     await app.locator("body").evaluate(element=>{const extra=document.createElement("div");extra.id="size-probe";extra.style.height="500px";element.append(extra)});
     await page.waitForFunction(height=>document.querySelector("iframe").getBoundingClientRect().height>height+400,initialHeight);
@@ -138,7 +153,7 @@ try {
     await page.waitForFunction(height=>document.querySelector('iframe').clientHeight>height+400,viewportHeight);
     await app.locator("body").evaluate(element=>{element.style.minHeight='';element.querySelector('#size-probe')!.remove()});
     await page.waitForFunction(height=>Math.abs(document.querySelector('iframe').clientHeight-height)<4,initialHeight);
-    assert.equal(await page.locator("iframe").getAttribute("sandbox"),"allow-scripts");
+    assert.equal(await page.locator("iframe").getAttribute("sandbox"),"allow-scripts allow-forms");
     assert.equal(await app.locator("#theme").textContent(),"light state=null");
     const before=await page.evaluate(()=>window.fixture.calls.length);
     await page.evaluate(()=>window.postMessage({jsonrpc:"2.0",id:10,method:"tools/call",params:{name:"increment",arguments:{amount:99}}},"*"));
@@ -146,7 +161,7 @@ try {
     await page.evaluate(()=>window.fixture.setTheme("dark"));
     await app.locator("#theme").filter({hasText:"dark"}).waitFor();
     assert.equal(await page.evaluate(()=>window.fixture.reads.length),1);
-    assert.equal(await page.locator(".thread-agent-activity__persistent-content iframe").count(),1);
+    assert.equal(await page.locator(".mcp-app iframe").count(),1);
     assert.equal(await app.locator("body").evaluate(async()=>{try{await fetch("https://mcp-app-denied.invalid/leak");return false}catch{return true}}),true);
     await app.locator("#message").click(); await page.waitForFunction(()=>window.fixture.messages.length===1);
     await app.locator("#context").click();

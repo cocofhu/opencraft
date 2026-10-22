@@ -172,7 +172,6 @@ export function ToolCallBlock({ block }: { block: Tool }) {
   const coreBody = hasCoreBody ? <div className="thread-tool-details" data-kind={block.kind}>
     {parts.length > 0 ? parts.map((part, index) => <ContentPart key={index} part={part} id={block.id + ":" + index} />)
       : <p className="thread-tool-details__empty">Tool returned no content</p>}
-    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     <RawToolOutput block={block} />
   </div> : undefined;
   const body = content === undefined ? coreBody : content;
@@ -184,6 +183,7 @@ export function ToolCallBlock({ block }: { block: Tool }) {
     unmountBodyWhenCollapsed>
     {hasCoreBody || content !== undefined ? <>{body}<AutomaticApprovalReviewList reviews={block.automaticApprovalReviews} /></> : undefined}
   </ActivityDisclosure>
+    {block.appResourceUri !== null ? <Suspense fallback={null}><AppSurface block={block} /></Suspense> : null}
     {block.webMcpCalls?.map((call, index) => <WebToolCall key={call.name + ":" + index} call={call} />)}
   </>;
 }

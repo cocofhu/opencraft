@@ -406,7 +406,7 @@ export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFra
   const blocks = frame.blocks.filter(block => !(block.type === "automatic-approval-review" && block.review.status === "approved"));
   // Generated media owns its pending feedback within the current response.
   // Earlier images must not suppress work after a new answer or input.
-  const responseBoundary = lastIndex(blocks, block => block.type === "user-message"
+  const responseBoundary = lastIndex(blocks, block => block.type === "user-message" || block.type === "realtime-transcript"
     || (block.type === "text" && (isAssistantAnswerContent(block)
       || block.delivery === "async" || (block.asyncQuestions?.length ?? 0) > 0)));
   if (blocks.slice(responseBoundary + 1).some(block => block.type === "image"
@@ -416,7 +416,7 @@ export function shouldRenderAgentThinkingPlaceholder(frame: AssistantTimelineFra
   if (block.type === "reasoning") return true;
   if (block.type === "text" && block.phase !== "commentary") return !(block.text.trim() || block.completed);
   if (block.type === "plan" && !block.completed) return false;
-  if (block.type === "user-message") return true;
+  if (block.type === "user-message" || block.type === "realtime-transcript") return true;
   if (block.type === "todo") {
     const predecessor = [...blocks.slice(0, -1)].reverse().find(b => b.type !== "todo");
     if (predecessor?.type === "reasoning") return true;
@@ -459,7 +459,7 @@ export function resolveAgentActivityLayout(unit: AgentActivityRenderUnit, persis
   const collapsed = showToggle && resolveAgentActivityDisclosure({ ...unit, persistedCollapsed }).isCollapsed;
   return { showToggle, workedForItem: showToggle ? unit.partitions.workedForItem : null, isCollapsed: collapsed,
     preToggleUnits: showToggle ? unit.partitions.preToggleUnits : [],
-    persistentUnits: showToggle ? unit.partitions.persistentUnits : [],
+    persistentUnits: showToggle && collapsed ? unit.partitions.persistentUnits : [],
     visibleUnits: showToggle ? (collapsed ? unit.partitions.collapsibleUnits : unit.partitions.expandedUnits) : unit.contentUnits,
     collapsedItemCount: showToggle ? unit.collapsedItemCount : countAgentActivityContentItems(unit.contentUnits) + (unit.inlineSubagentActivity ? 1 : 0), showInlineSubagentActivity: Boolean(unit.inlineSubagentActivity) && !collapsed };
 }
@@ -569,7 +569,7 @@ export function createTimelineTurnPresentationPlan(turn: TimelineTurnView, regis
       thinkingOwner = { type: "activity", activityId: last.id, groupId: innerOwner.id };
     }
     const pendingInteraction = blocks.some(block => "state" in block && block.state === "pending");
-    const lastBoundary = lastIndex(blocks, block => block.type === "user-message");
+    const lastBoundary = lastIndex(blocks, block => block.type === "user-message" || block.type === "realtime-transcript");
     const currentFrame = { ...assistantFrame, blocks: blocks.slice(lastBoundary + 1) };
     const planning = currentFrame.blocks.some(block => block.type === "plan" && !block.completed);
     if (active && thinkingOwner.type === "none" && !pendingInteraction
