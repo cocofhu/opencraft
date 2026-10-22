@@ -2018,3 +2018,14 @@ Sidebar search may reuse unchanged row presentation. Parent props, grouping and 
 ## Sidebar modal target membership
 
 Rename/delete dialogs dismiss when their exact Host/Thread leaves the complete Sidebar directory. Search, filtering, pagination and regrouping do not revoke a still-present target or lose its draft/focus. A same-ID Thread on another Host cannot preserve a removed target's modal. Cleanup does not submit actions or change selection. Existing `smoke:thread-management` verifies regroup continuity and both removal paths across desktop/touch and themes.
+
+## Offscreen ordinary navigation rows
+
+Fine-pointer, hover-capable clients may skip rendering offscreen, single-line
+sidebar rows with no rendered contribution using native content visibility.
+Empty optional contribution slots remain eligible. Their intrinsic block size
+follows the existing minimum hit target, title line height and vertical padding;
+previously measured size remains authoritative. Metadata and contribution rows
+retain natural layout. Focused rows and rows with open menus retain ordinary
+rendering so focus rings and overlays remain reachable. Native scrolling,
+keyboard reveal, destination selection and drafts keep their existing owners.
