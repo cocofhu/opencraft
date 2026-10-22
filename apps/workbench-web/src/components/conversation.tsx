@@ -4,6 +4,7 @@ import { PatchActivityIcon } from "./activity-glyphs";
 import { ResetIcon as RotateCcw } from "@opencraft/design-system-web/action-icons";
 import { ConversationSelectionMenu } from "./conversation/selection-menu";
 import { ConversationEntryMotionContext, useConversationEntryMotion } from "./conversation/entry-motion";
+import { CommandViewStateContext, type CommandViewState } from "./conversation/command-view-state";
 import { VisibleTurnReceipt, VisibleTurnReceiptContext } from "./conversation/visible-turn-receipt";
 import { useIntl } from "@opencraft/i18n/react";
 import { ThinkingLabel } from "./thinking-label";
@@ -623,6 +624,7 @@ export interface ConversationRestoreSnapshot {
   readonly chatReadingPositions?: Readonly<Record<string, ChatReadingPosition>>;
   readonly activityDisclosures?: Readonly<Record<string, ActivityDisclosureState>>;
   readonly diffReadingPositions?: Readonly<Record<string, DiffReadingPosition>>;
+  readonly commandViews?: Readonly<Record<string, CommandViewState>>;
   readonly asyncQuestionDrafts?: Readonly<Record<string, AsyncQuestionDraft>>;
   readonly distanceFromBottomPx: number;
   readonly virtualizedTurnList: VirtualizedTurnRestoreState | null;
@@ -753,6 +755,7 @@ export function Conversation({
   const [chatReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.chatReadingPositions ?? {})));
   const [activityDisclosures] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.activityDisclosures ?? {})));
   const [diffReadingPositions] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.diffReadingPositions ?? {})));
+  const [commandViews] = useState(() => new Map(Object.entries(initialRestoreSnapshot?.commandViews ?? {})));
   const [asyncQuestionDrafts, setAsyncQuestionDrafts] = useState<Readonly<Record<string, AsyncQuestionDraft>>>(
     () => initialRestoreSnapshot?.asyncQuestionDrafts ?? {},
   );
@@ -927,6 +930,7 @@ export function Conversation({
       chatReadingPositions: Object.fromEntries(chatReadingPositions),
       activityDisclosures: Object.fromEntries(activityDisclosures),
       diffReadingPositions: Object.fromEntries(diffReadingPositions),
+      commandViews: Object.fromEntries(commandViews),
       asyncQuestionDrafts: asyncQuestionDraftsRef.current,
       distanceFromBottomPx: responseRestore?.distanceFromBottomPx
         ?? scrollController.getLastScrollDistanceFromBottomPx(),
@@ -934,7 +938,7 @@ export function Conversation({
       turnFollow: responseRestore?.turnFollow ?? null,
     });
     viewportOwner.dispose();
-  }, [activityDisclosures, cancelPendingTargetPosition, chatReadingPositions, diffReadingPositions, scrollController, viewportOwner]);
+  }, [activityDisclosures, cancelPendingTargetPosition, chatReadingPositions, commandViews, diffReadingPositions, scrollController, viewportOwner]);
 
   const renderTurn = (turn: TimelineTurnView, isLatest: boolean, offset?: MotionValue<number> | null) => (
     <TurnRenderErrorBoundary resetKey={turn.turnKey}>
@@ -993,6 +997,7 @@ export function Conversation({
     <ChatReadingPositionContext.Provider value={chatReadingPositions}>
     <ActivityDisclosureStateContext.Provider value={activityDisclosures}>
     <DiffReadingPositionContext.Provider value={diffReadingPositions}>
+    <CommandViewStateContext.Provider value={commandViews}>
     <ConversationEntryMotionContext.Provider value={allowEntryMotion}>
     <VisibleTurnReceiptContext.Provider value={onTerminalResultVisible}>
     <DisclosureReflowContext.Provider value={viewportOwner.beginReflowAnchor}>
@@ -1086,6 +1091,7 @@ export function Conversation({
     </DisclosureReflowContext.Provider>
     </VisibleTurnReceiptContext.Provider>
     </ConversationEntryMotionContext.Provider>
+    </CommandViewStateContext.Provider>
     </DiffReadingPositionContext.Provider>
     </ActivityDisclosureStateContext.Provider>
     </ChatReadingPositionContext.Provider>

@@ -2940,3 +2940,16 @@ content cannot inherit a stale position; the checkpoint contains no code or
 table text. Streaming/highlighting and theme updates retain the existing DOM
 without replaying a saved scroll on every update. This adds no focus writes,
 selection replacement, global persistence, execution or permission state.
+
+### Command log reading continuity
+
+Command disclosure and log reading state belong to the existing Conversation
+View. Its restore snapshot retains explicit open/collapsed choice, both log
+scroll axes and the reader's follow-output intent, keyed by source block identity.
+Virtual row remounts and returns to that same View restore the state before paint.
+Layout teardown captures the actual log coordinates before refs detach, including
+a final scroll whose browser event is still queued when the View leaves.
+New output follows only when the reader was already following; manual reading
+keeps its position. Explicitly reopening starts at latest output. A fresh View
+starts with the normal collapsed command default. These memory-only numbers and
+choices contain no output, execution state, permission or automatic action.

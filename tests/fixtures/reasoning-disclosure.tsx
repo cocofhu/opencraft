@@ -133,6 +133,14 @@ function Demo() {
       };
       setTurn({ id: "turn", status: running ? "streaming" : "complete", items: [{ id: item.id, type: item.type, payload: item }] }); return;
     }
+    if (action.startsWith("command-view-")) {
+      const reset = action === "command-view-reset";
+      if (reset) { restore = null; setGeneration(value => value + 1); }
+      setTurn({ id: "turn", status: "streaming", items: [{ id: "view-command", type: "commandExecution", payload: {
+        command: "audit-log-display-only", status: "inProgress", exitCode: null,
+        aggregatedOutput: Array.from({ length: reset ? 190 : 210 }, (_, index) => `Line ${index + 1} ${"output column ".repeat(8)}`).join("\n"),
+      } }] }); return;
+    }
     if (action === "restore") { setMounted(false); return; }
     if (action === "reset" || action === "empty" || action === "markdown") {
       restore = null; setEngine(selectedEngine); setGeneration(value => value + 1);

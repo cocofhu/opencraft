@@ -183,6 +183,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
   const rowIdPrefix = useId();
   const activityList = useRef<HTMLDivElement>(null);
   useSidebarHeadingOcclusion(activityList);
+  const contentViewport = useRef<HTMLDivElement>(null);
   const text = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
   const label = (value: ThreadListLabel) => typeof value === "string" ? value : intl.formatMessage(value);
   const identity = (thread: SidebarThread) => JSON.stringify([thread.connectionHostId, thread.id]);
@@ -317,6 +318,41 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
             .some(row => row.connectionHostId === current.hostId && row.id === current.threadId)));
     if (!visible) menus.close();
   });
+  const selectedKey = JSON.stringify(pendingHostId !== null && pendingThreadId !== null
+    ? [pendingHostId, pendingThreadId] : [activeHostId, activeThreadId]);
+  const selectedSection = groupedSections
+    ? groupedSections.find(group => group.threads.some(ref => JSON.stringify([ref.hostId, ref.threadId]) === selectedKey))
+    : Object.entries(taskFlow).map(([id, rows]) => ({ id, collapsed: folded[id] ?? false,
+        threads: rows.slice(0, id === "pinned" ? pinnedLimit : id === "recent" ? recentLimit : rows.length)
+          .map(thread => ({ hostId: thread.connectionHostId, threadId: thread.id })) }))
+      .find(group => group.threads.some(ref => JSON.stringify([ref.hostId, ref.threadId]) === selectedKey));
+  const selectedSectionId = selectedSection?.id;
+  const selectedVisible = selectedSection !== undefined && !selectedSection.collapsed;
+  const previousSelection = useRef({ key: selectedKey, pinnedLimit, recentLimit });
+  useLayoutEffect(() => {
+    const previous = previousSelection.current;
+    previousSelection.current = { key: selectedKey, pinnedLimit, recentLimit };
+    // Revealing more history is a reading action, not a new navigation intent.
+    if (previous.key === selectedKey && (pinnedLimit > previous.pinnedLimit || recentLimit > previous.recentLimit)) return;
+    if (!selectedVisible) return;
+    const content = contentViewport.current;
+    const row = content?.querySelector<HTMLElement>(".sidebar-activity-item.is-selected");
+    if (!content || !row) return;
+    const column = content.closest(".shell-sidebar__column");
+    const mobile = column?.getAttribute("data-navigation-layout") === "mobile";
+    const viewport = (mobile ? column?.querySelector<HTMLElement>(".shell-sidebar__scroll")
+      : content.querySelector<HTMLElement>(".sidebar-activity-list")) ?? content;
+    if (!viewport.isConnected || !viewport.clientHeight || !viewport.clientWidth
+      || viewport.closest('[inert], [aria-hidden="true"]')) return;
+    const bounds = viewport.getBoundingClientRect();
+    const sticky = mobile ? column?.querySelector<HTMLElement>('[data-action-id="shell.home"]') : null;
+    const padding = getComputedStyle(viewport);
+    const top = Math.max(bounds.top + (parseFloat(padding.scrollPaddingTop) || 0), sticky?.getBoundingClientRect().bottom ?? bounds.top);
+    const bottom = bounds.bottom - (parseFloat(padding.scrollPaddingBottom) || 0);
+    const item = row.getBoundingClientRect();
+    if (item.top < top) viewport.scrollTop += item.top - top;
+    else if (item.bottom > bottom) viewport.scrollTop += Math.min(item.bottom - bottom, item.top - top);
+  }, [selectedKey, selectedSectionId, selectedVisible, pinnedLimit, recentLimit]);
   const navigationAction = (action: SidebarActionItem) => <SidebarNavigationItem key={action.id} title={action.title}
     active={action.active} icon={<SidebarContributionIcon name={action.icon} />} onInvoke={() => dismissAfter(action.onInvoke)} />;
   const retryLabel = text("sidebar.catalog.retry", "Retry");
@@ -331,7 +367,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         {showStart ? <SidebarNavigationItem icon={<SquarePen size={18} />} title={text("sidebar.start", "Start")} onInvoke={() => dismissAfter(onNewTask)} /> : null}
         {primaryActions.map(navigationAction)}
       </nav>
-      <div className="sidebar-content-scroll">
+      <div className="sidebar-content-scroll" ref={contentViewport}>
         {managementNavigation}
         {catalogs.map(catalog => <ExtensionCatalog key={catalog.id} catalog={catalog} />)}
         <SidebarBots items={bots} creation={botCreation} />

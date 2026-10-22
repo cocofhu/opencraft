@@ -323,6 +323,62 @@ try {
       results.push({ touch, theme, detailViewRestored: true, refreshedOutput: true, explicitCollapse: true, freshViewIsolated: true });
       if (process.argv.includes("--detail-view-only")) { await page.close(); continue; }
     }
+    if (process.argv.includes("--command-view-only") || !process.argv.some(value => value.endsWith("-only"))) {
+      const restoreView = async () => {
+        const scroll = await page.locator('.thread-scroll').elementHandle();
+        await update("restore");
+        await page.waitForFunction(element => !element.isConnected, scroll);
+        await page.locator('.thread-scroll').waitFor();
+      };
+      await update("command-view-reset");
+      for (let index = 0; index < 8; index++) {
+        if (await page.locator('.thread-shell-output').count()) break;
+        const closed = page.locator('.thread-agent-activity__group button[aria-expanded="false"], .thread-activity-item__hit-target[aria-expanded="false"]');
+        assert.ok(await closed.count(), "the original command disclosure is reachable");
+        await activate(closed.first());
+      }
+      const viewport = page.locator('.thread-shell-output__output pre');
+      await viewport.waitFor();
+      await viewport.evaluate(element => { element.scrollTop = 180; element.scrollLeft = 90; });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.thread-shell-output__output pre');
+        return element?.scrollTop === 180 && element.scrollLeft === 90;
+      });
+      const first = await viewport.elementHandle();
+      await restoreView();
+      await page.waitForFunction(element => !element.isConnected, first);
+      await viewport.waitFor();
+      assert.deepEqual(await viewport.evaluate(element => [element.scrollTop, element.scrollLeft]), [180, 90],
+        "the same View restores both log reading axes");
+      const restored = await viewport.elementHandle();
+      await update("command-view-append");
+      assert.equal(await restored!.evaluate(element => element.isConnected), true);
+      assert.equal(await viewport.evaluate(element => element.scrollTop), 180, "new output does not take over manual reading");
+      await viewport.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      await page.waitForFunction(() => {
+        const element = document.querySelector('.thread-shell-output__output pre')!;
+        return element.scrollHeight - element.clientHeight - element.scrollTop <= 2;
+      });
+      await restoreView();
+      await viewport.waitFor();
+      assert.ok(await viewport.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop <= 2),
+        "following the latest output survives a View remount");
+      await page.screenshot({ path: join(output, `command-view-${touch ? 'touch' : 'mouse'}-${theme}.png`) });
+      const trigger = page.locator('.thread-activity-item[data-status] > .thread-activity-item__header button').last();
+      await activate(trigger);
+      await page.waitForFunction(() => document.querySelector('.thread-activity-item[data-status]')?.getAttribute('data-open') !== 'true');
+      await restoreView();
+      assert.equal(await trigger.getAttribute('aria-expanded'), 'false', "explicit collapse survives the same View restoration");
+      await activate(trigger);
+      await viewport.waitFor();
+      assert.ok(await viewport.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop <= 2),
+        "an explicit reopen still starts at latest output");
+      await update("command-view-reset");
+      assert.equal(await page.locator('.thread-shell-output').count(), 0, "a fresh View does not inherit another View's choice");
+      assert.deepEqual(errors, []);
+      results.push({ touch, theme, commandViewRestored: true, readingPosition: true, followIntent: true, freshViewIsolated: true });
+      if (process.argv.includes("--command-view-only")) { await page.close(); continue; }
+    }
     for (const engine of (process.argv.includes("--spacing-only") ? [] : ["codex", "hermes", "dsh"])) {
       await page.locator('.thread-reasoning').waitFor();
       await update("empty", engine);
@@ -655,7 +711,7 @@ try {
       existingToolGroupResizeWarnings: resizeFeedback.map((event: any) => event.action) }));
     await page.close();
   }
-  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") || process.argv.includes("--turn-entry-only") ? [] : [
+  const localizedLabels = process.argv.includes("--detail-view-only") || process.argv.includes("--diff-reading-only") || process.argv.includes("--diff-position-only") || process.argv.includes("--turn-files-only") || process.argv.includes("--turn-entry-only") || process.argv.includes("--command-view-only") ? [] : [
     ["zh-Hant", "思考中…", "思考過程"],
     ["id-ID", "Sedang berpikir…", "Proses berpikir"],
     ["es", "Pensando…", "Razonamiento"],

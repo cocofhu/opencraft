@@ -2301,3 +2301,14 @@ shared settings controls. The application catalog projects Host summaries rather
 than filtering the currently paginated conversation rows. Opening a task uses its
 Host/thread identity; management reuses the existing per-conversation editor.
 The catalog owns neither execution timers nor a separate draft or mutation model.
+
+## Conversation interaction continuity
+
+- MCP App surfaces are siblings of tool details. Detail collapse never controls App visibility or lifetime; AppSurface retains ownership of viewport suspension and widget state.
+- A command output viewport follows appended output while at the bottom. Scrolling up suspends following; returning to the bottom restores it without moving the conversation viewport.
+- Automatic review assessments remain independently expandable for read/search activities, even when their semantic presentation has no terminal output body.
+- Sidebar selection changes and selected-section visibility changes reveal the selected row in the actual desktop/mobile scroll owner. Pagination and unrelated catalog updates preserve reading position; detached, hidden or inert content cannot scroll.
+- Generated images reserve their existing gallery placeholder while generation or Host media resolution is pending. Terminal items with no image and no pending load do not retain a progress indicator.
+- The raw tool-result dialog exposes the shared JSON code surface clipboard action; ordinary inline JSON remains quiet. The copied value includes the complete raw result.
+
+- Selected conversation reveal respects the actual scroll viewport’s computed scroll padding so mobile floating actions cannot cover the selected row.
