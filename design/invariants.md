@@ -1,5 +1,9 @@
 # 工作区不变量
 
+## Conversation model display continuity
+
+Existing conversation model and effort labels reflect its own execution or explicit draft choice before catalog hydration. Unknown settings never become a default effort. Completed model metadata may paint the matching label within one Host runtime, but cannot seed another Thread's selectable catalog or authorize submission. Historical views do not fetch new-conversation defaults.
+
 ## Persistent sidebar control beside the brand
 
 Unified Shell navigation keeps its sidebar toggle in the persistent header,
@@ -968,7 +972,7 @@ Header 的可见导航 rail 用 `max-content` 在同一次布局中保留真实�
 
 触屏行高仅消费密度token：单行max(32px, --size-control-hit-min)，两行最小max(48px, --size-control-hit-min + 12px)；状态、头像与行菜单垂直居中。漏斗/右键的模式radio与filter checkbox共享indicator槽与文字轴，四种locale/桌面触屏均保留间隔。
 
-core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉先按屏宽减64px保留关闭区域，再以共享frame.sidebarMobileWidthRatio（85%）收窄并取整；不写回桌面宽度、不缩小字体或触控目标；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
+core unified Shell 桌面将60px图标栏与列表列分开，移动抽屉纵向菜单位于全宽列表上方；列表标题（含筛选入口）、日期标题与会话行消费同一列表列inset，头像按内容宽度右对齐、右边缘与菜单间距固定。一行/两行共享右边缘，工作目录置于标题下方辅助行，无独立底板，过长省略，不占用标题行宽度。unified默认335px、最小300px（原列表默认275px/最小240px加60px图标栏），旧保存宽度按新最小值夹紧，未保存时消费frame新默认值；手机抽屉先按屏宽减64px保留关闭区域，再以共享frame.sidebarMobileWidthRatio（90%）收窄并取整；不写回桌面宽度、不缩小字体或触控目标；独立/嵌入侧栏保持原宽度。图标行的 icon-label gap、会话层次、右侧状态与菜单命中区保持原语义。下游产品两面保持旧 consumer 留白。
 
 `scripts/smoke-sidebar-thread-insets.mjs` 挂载真实 AppShell + Sidebar + ThreadRowMenu，以合成短/长标题、日期组、项目和状态测宽窄固定/浮动、选中/hover浅深几何；此前 Settings 列测试不代替会话消费链。
 
@@ -1371,6 +1375,8 @@ Composer输入辅助菜单焦点策略独立于模型/权限业务和Radix基础
 
 非空附属rail与shell连接处不重复绘制shell顶部边框/内侧高光；空rail恢复独立输入框完整边界。用户确认本轮对象为静止时中间横缝。
 
+Conversation search keeps result identity as Host/Thread. Moving the active result may reuse unchanged row presentation, while query/catalog/content-source/locale changes refresh the projection, disabled state and callbacks. The dialog retains input focus, active-descendant navigation and selection/abort ownership; rendering reuse must not truncate results or defer search. Unrelated App snapshot updates keep the searched-thread callback stable for the same Host catalog, and the search wrapper keeps close stable for the same open-state owner. Search selection subscribes only to the existing sidebar-dismiss action rather than unrelated Shell geometry. Owner replacement still refreshes callbacks; result reuse never captures obsolete navigation, close or locate behavior.
+
 ## Global conversation search
 
 Title results remain available immediately; Codex message results add an escaped snippet and Server provenance. Closing/retyping/revoking a connection cannot publish late results or relocate another conversation. The dialog preserves keyboard ownership and drafts. Loading, per-Server failure/retry, title-only support, disconnected sources and remaining pages are explicit; incomplete coverage is never reported as an exhaustive empty match. Selecting a visible message reuses authoritative hydration and measured virtualized positioning, at the containing prompt for assistant matches. A raw-history match without a visible locator opens with a positioning notice; it does not claim an exact jump.
@@ -1601,7 +1607,7 @@ Shell keeps its existing header measurements, safe-area clearance, 44px touch ta
 
 ### Reasoning effort discrete slider
 
-The Composer detail pane projects only the selected model's declared, ordered
+The first Composer picker layer projects only the selected model's declared, ordered
 reasoning choices through the shared Web DiscreteSlider. Track/round thumb/ticks,
 readout and endpoints consume shared geometry, typography and theme tokens.
 Held drag changes preview only; release commits through existing selection and
@@ -1609,6 +1615,10 @@ remember-default actions. Escape/outside closes the existing menu, not each step
 Touch editing keeps its focus lease and native selection; keyboard adjustment is
 Radix-owned and must not become menu navigation. No choices hides, one disables,
 and an unset value remains explicitly unset until chosen.
+The model title opens configuration; its optional Speed row projects serviceTiers
+from the model catalog. A Standard choice sends null to clear Fast, including
+queued/reloaded messages. Unsupported models hide Speed and clear incompatible
+tiers; speed and reasoning never substitute for each other.
 
 ## Common workbench keyboard commands
 
@@ -1874,6 +1884,33 @@ and content-width changes publish invalidation ticks with effect cleanup.
 Shared animation, resize, browser and geometry implementations are unchanged;
 this disposition does not classify those dependencies or native platform behavior.
 
+## Composer model/depth hierarchy
+
+Standalone Composer opens its declared effort slider and an optional Fast lightning
+checkbox at the left on first activation. Effort is centered above the full model name, which opens a compact model list
+without capability details. The Composer shows enabled Fast beside the model name.
+High frequency depth changes do not traverse a model list. Presentation never
+adds unsupported speed/effort choices, remounts the editor or writes a default
+by opening. The shared slider capsule variant retains Radix gesture/keyboard
+ownership and previews effort until a completed choice. Desktop uses a compact surface with the shared slider metrics; touch targets keep the density minimum. The right reset commits only a declared model default effort, preserving model/tier/draft and native editor selection; absent defaults disable reset. Embedded session-only
+policy keeps Host-owned reasoning outside its model-only picker.
+
+## Touch Composer content geometry
+
+An empty idle auto-single-line touch Composer is one vertically centered row,
+with no model entrance. An enabled Fast tier remains a compact status icon.
+Entering the editor starts its local editing presentation and reveals the normal
+model/depth/Fast footer before typing. Toolbar and owned portal focus retain the
+session; focus leaving both ends it after menu close cleanup. Clearing while
+editing stays expanded; clearing and leaving restores the idle row. Attachments
+and editing use content-sized input with a one-line minimum, never flex-grown
+blank space. The same editor and native Selection survive all transitions.
+
+Vertical row alignment never centers the editor's inline text. The empty native
+caret and placeholder share the paragraph's logical start; typing and deleting
+the final character (also with the keyboard raised) must restore that origin
+without replacing the editor, moving Selection or drawing a substitute caret.
+
 
 ## Appearance runtime ownership
 
@@ -1951,6 +1988,19 @@ owner.
 Built-in theme IDs use `opencraft.core.*` (neutral, canvas, frost, lavender, mist, zencode). Appearance selection and mode write only `opencraft.appearance-theme-id` and `opencraft.appearance-theme`. The six former built-in IDs are exact read aliases, including trusted build policy; extension IDs remain opaque. Canonical saved keys take precedence over legacy fallback keys. Existing saved values are not deleted, and policy hiding/default conflicts are checked after alias normalization. Bootstrap mode uses the same key priority to avoid an initial appearance mismatch. Palette, geometry and rendering contracts are unchanged.
 
 Generated images reserve their existing gallery placeholder while generation or Host media resolution is pending. Terminal items with no image and no pending load do not retain a progress indicator.
+
+### Side chat slash command
+
+An existing conversation’s Composer advertises `/side` alongside its Host shortcuts. Explicit submission of the standalone command invokes the same Side Chat panel action as the toolbar, with the current conversation owner and working directory. It never sends or queues model input, including during an active turn. A stale owner, unavailable action or failed fork retains the command draft and reports failure. Arguments, attachments, context and code remain ordinary prompt content. New-thread composers do not advertise a fork command.
+
+### Inline command discovery
+
+Composer commands are discovered directly from slash suggestions in the editor. A non-empty shortcut catalog must not introduce a command-library button or separate footer menu. Selecting a suggestion inserts editable text; explicit submission owns execution.
+### Side chat model display
+
+Side chat displays its fork’s current execution model as compact, non-interactive Composer metadata. It offers no model menu and submits no model, effort or service-tier override; the child conversation retains execution ownership. Main conversation model controls are unchanged.
+
+Side Chat inherited metadata groups the catalog model name, known reasoning effort and actual Fast state, using compact shared typography without interactive affordances. Identifier fallback uses readable words; missing settings do not invent defaults.
 
 ### Message continuity and dictation motion preference
 

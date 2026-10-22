@@ -209,6 +209,7 @@ test("Conversation Runtime derives its complete UI snapshot from Replica authori
     assert.deepEqual(snapshot.execution, {
       model: "gpt-5.6",
       effort: "high",
+      serviceTier: null,
       permissionProfile: ":workspace",
       cwd: "/workspace",
       runtimeWorkspaceRoots: ["/workspace", "/shared"],

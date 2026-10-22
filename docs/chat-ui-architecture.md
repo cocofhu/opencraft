@@ -250,7 +250,9 @@ surfaces share identity, projection, runtime commands, Composer documents and
 design tokens. They do not share a renderer or editor implementation.
 
 Host providers may declare localized Composer shortcuts as ordinary prompts or
-standalone actions. Selecting either only inserts editable text; explicit send is
+standalone actions. Commands are discovered by typing `/` in the editor; declaring
+shortcuts must not add a command-library button or a separate toolbar menu.
+Selecting a suggestion only inserts editable text; explicit send is
 required. The core matches only a single paragraph with no attachments/context
 and no arguments. Ordinary prompts and unmatched input retain normal submission,
 including queue admission. The optional resident `composerCommands` port binds an
@@ -1326,30 +1328,29 @@ set: an empty set hides the control, `none` means disable only when explicitly
 declared, and the model default must be a member of the same set. Hermes maps
 its Session-owned effort through the existing AppServer model/Turn fields;
 provider-specific wire clamping remains inside Hermes Runtime.
-The Web Composer presents model and reasoning through one Radix menu but keeps
-their hierarchy distinct. At desktop widths, models are the primary scrollable
-column and the selected model owns an adjacent detail column; narrow surfaces
-stack the same two regions without changing their state. The detail projection
-shows only catalog-authoritative metadata: user-authored display name, custom
-source, context/output limits, input modalities and declared reasoning efforts.
-It does not infer capabilities from a model name or render catalog descriptions
-in the compact picker. Selecting a model keeps the menu open so that this
-projection can refresh in place. Reasoning is a shared discrete slider: the current
-choice is named above a pill track with declared stops, filled range and a round
-thumb; endpoint labels show its range. The control derives order and count from
-the selected model, hides for no choices and is disabled for one choice. It does
-not infer unsupported options or write a default merely by opening the menu.
-Dragging previews locally; releasing commits once through the existing Composer
-selection/default action. Cancelled gestures discard preview. Arrow/Home/End/Page
-keys use Radix Slider semantics and are isolated from menu roving focus. Changes
-keep the menu open for further adjustment; Escape/outside dismiss as usual.
-Model changes preserve a compatible effort and otherwise resolve through that
-model's declared default rather than a global effort order. The shared Web Design
-System owns slider geometry, theme material, focus and disabled treatment.
-Its optional pointer-focus policy preserves the Composer's existing editor lease:
-a touch-origin drag temporarily removes thumb focusability so Radix focus calls
-cannot blur the editor; release/cancel restores keyboard access. It does not
-blur/refocus, rewrite native selection or implement another gesture controller.
+The standalone Web Composer prioritizes frequent reasoning changes. Its current
+model/effort label opens a focused capsule slider with only the selected model's
+declared efforts. Its title opens a compact Radix model list without capability
+or metadata detail panels. Model switching remains a second action. A lightning
+checkbox at the header's left projects only a declared Fast serviceTier,
+and the Composer label shows a lightning icon while enabled. Turning it off
+explicitly clears the previous tier with null; Fast uses the server's declared ID.
+Models without Fast hide the checkbox, and model switches clear incompatible
+tiers. Embedded session-only policy retains its model-only
+picker and Host-owned reasoning policy.
+
+The shared DiscreteSlider owns the capsule geometry, tick marks and themed
+selected fill/round thumb. The centered effort heading previews the held choice above the secondary full model name;
+dragging never writes defaults until release. The right-hand reset commits only the current model's declared default effort through the existing selection owner; no default disables it. It does not reset the model or service tier. The focused surface is compact on desktop, while touch actions retain their density-owned hit areas. Its start-aligned anchor remains stable when the Composer effort label changes width; a stationary pointer must not steal keyboard slider focus. Cancellation discards preview.
+Arrow/Home/End/Page keys remain slider-owned; ArrowDown from the title enters the
+slider. Touch-origin adjustment preserves the editor's existing native focus and
+selection through the auxiliary focus lease, including Fast toggles. Radix owns
+menu keyboard navigation and dismissal. Opening either layer writes no
+selection. No choices hides the slider; one choice is disabled. Model selection
+continues to preserve a compatible effort and otherwise resolves through that
+model's default. Catalog loading, failures, retry and Agent switching
+retain their existing owners, as do account defaults and the mounted editor.
+
 
 
 The Composer permissions menu contains only declared permission profiles, without
@@ -2150,7 +2151,9 @@ normal navigation and to conversations opened from linked Tasks alike.
 The shared shell paints ordinary/Newera glass in a pointer-transparent background
 pseudo-element. Backdrop filters must not wrap the ProseMirror editing subtree;
 layout, keyboard viewport projection and the browser's native selection remain
-separate owners. Material variables consume theme tokens and opaque fallbacks.
+separate owners. User-selected model controls use one flex formatting context
+and consistent padding/gaps in empty and nonempty touch layouts around
+the mounted editor. Material variables consume theme tokens and opaque fallbacks.
 Within the sticky conversation footer, desktop paints a rectangular safe-area
 gutter with a straight upper edge below the shell. It does not fill the lower
 rounded-corner cutouts. Touch paints no gutter cover, leaving the same Composer
@@ -2313,7 +2316,7 @@ not merely because a conversation is retained in the cache.
 
 A successful creation receipt retains the immutable submitted message in the existing account-scoped display continuity service before Draft promotion. The handoff is synchronous, memory-only, bounded to 64 Threads and keyed by Host/Thread. Pending presentation and the retained message share submittedMessageDisplay. A newly mounted Thread keeps this paint-only message through an empty authoritative baseline until a canonical user message arrives, without a cold-history spinner or an extra syncing notice. Real recovery errors remain visible. Old cold Threads still use normal recovery presentation. Account changes replace the service and discard all transient handoffs. Preview data never authorizes commands, acknowledges reads, restores Replica cursors or persists unconfirmed input; Resume/Replica and first-Turn retry ownership remain unchanged.
 
-OpenCraftComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Focus alone does not change either policy. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
+OpenCraftComposer selects its layout from composition: context chrome requires stacked context, input and footer rows, independent of whether the draft is empty. Composers without context chrome retain the automatic single-line empty touch presentation. Editor focus expands the empty automatic touch presentation; context chrome still requires stacked rows. Model and permission controls belong to the normal-flow footer, whose real width owns progressive disclosure; they are not absolutely projected into the context row. The same editor, selection state and menus stay mounted across typing, clearing and viewport changes. Draft and Conversation share Shell floating chrome, so the Home does not retain a separate opaque toolbar band above the keyboard.
 In short visual viewports, the Home grid reserves the Composer’s measured content height instead of fixed hero/composer row minima, keeping the send action above the keyboard.
 
 ### Recovery technical details
@@ -2411,6 +2414,19 @@ taking precedence; unknown external fields and native AppServer formats remain
 unchanged. Message identity, acknowledgement matching and display policy retain
 their existing owners.
 
+Side Chat queries the child Host/runtime model catalog for display metadata only. The execution snapshot owns inherited model, effort and service tier. The compact non-interactive footer retains catalog casing, with readable identifier fallback.
+
+### Conversation content search deadlines
+
+Native `thread/search` and `thread/searchOccurrences` may scan full raw history.
+Their bounded 120-second request deadline passes through the shared runtime
+protocol port, independently of the normal 30-second metadata deadline. Searches
+remain serialized per source: changing or clearing input aborts presentation and
+skips obsolete queued queries, while an already dispatched scan retains its
+physical lifetime until completion or timeout. This avoids spawning overlapping
+full-history scans. Late results still require the current query, connection and
+authorization scope; a slow source does not prevent another source from rendering
+its results. The longer deadline does not imply an indexed or faster search.
 
 ### Initial user echoes and explicit steering acknowledgements
 
