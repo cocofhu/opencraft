@@ -172,7 +172,10 @@ Browser-frame trajectories and physical iOS/WeChat keyboard acceptance are
 separate evidence: endpoint reachability is insufficient to verify transitions.
 
 Mobile new-thread input uses a bottom anchor shared with existing threads, while
-the heading yields spare space. Desktop retains the centered content group.
+the welcome region yields spare space. Its title uses a stable block-start inset
+below navigation, independent of keyboard height and Composer focus expansion;
+clipping the optional region never adds a minimum to the input budget. Desktop
+retains the centered content group.
 No height breakpoint or focus mode exchanges the input DOM or re-centers it.
 Existing and new conversation routes share this viewport owner.
 

@@ -949,7 +949,10 @@ be used as a focus-retention mechanism for Send or Stop. Activation stays on cli
 for pointer, keyboard and assistive input; do not submit on touchstart.
 
 Mobile new-thread pages use the same bottom input anchor as existing threads;
-the heading owns flexible spare space. Desktop retains the centered content group.
+the welcome region owns flexible spare space, but its title stays at a stable
+block-start inset below navigation. Focus expansion, model/tool content and
+keyboard resize cannot recenter this title. The region clips before competing
+with input capacity on short screens. Desktop retains the centered content group.
 Keyboard changes cannot recenter the mobile input. The action region retains its controls. The route publishes its actual size-container capacity minus
 its own block insets to the shared Composer budget; editor/preview content yields
 before actions. Optional heading gaps are shrinkable space, not padding that

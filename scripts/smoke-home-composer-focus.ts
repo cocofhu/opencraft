@@ -22,9 +22,17 @@ try {
   const editor=page.locator(".opencraft-composer-editor"),shell=page.locator(".opencraft-composer-shell");
   await editor.waitFor();await page.waitForTimeout(250);
   await editor.evaluate(el=>{(window as any).keptEditor=el;(el as HTMLElement).blur();});
-  const initial=(await shell.boundingBox())!;await editor.focus();await page.waitForTimeout(250);const focused=(await shell.boundingBox())!;
+  const initial=(await shell.boundingBox())!;
+  const welcomeInset=await page.locator('#new-thread-heading').evaluate(el=>el.getBoundingClientRect().top-el.closest('.new-thread-draft-main')!.getBoundingClientRect().top);
+  const assertWelcomeAnchor=async()=>{
+    if(desktop)return;
+    const inset=await page.locator('#new-thread-heading').evaluate(el=>el.getBoundingClientRect().top-el.closest('.new-thread-draft-main')!.getBoundingClientRect().top);
+    assert(Math.abs(inset-welcomeInset)<=1,`${label}: welcome title recenters during input/keyboard changes ${JSON.stringify({welcomeInset,inset})}`);
+  };
+  await editor.focus();await page.waitForTimeout(250);const focused=(await shell.boundingBox())!;
   const header=await page.locator(".app-shell-header").evaluate(el=>({background:getComputedStyle(el).backgroundImage,before:getComputedStyle(el,"::before").display}));
   if(before){assert(focused.height>initial.height+20);assert.notEqual(header.background,"none");await page.screenshot({path:`${output}/before.png`});evidence.push({test,initial,focused,header});await context.close();continue;}
+  await assertWelcomeAnchor();
   assert.equal(focused.height,initial.height,`${label}: empty focus geometry`);
   if(!desktop&&!test.ordinary){assert.equal(header.background,"none");assert.equal(header.before,"none");}
   await editor.fill("保留当前草稿");const content=(await shell.boundingBox())!;assert(content.height>=focused.height);
@@ -40,12 +48,14 @@ try {
     if(previous&&Math.abs(previous.height-height)<=5)assert(Math.abs(input.y-previous.top)<=Math.abs(height-previous.height)+1,`${label}: input jumps across a one-pixel height change ${JSON.stringify({previous,height,input})}`);
     assert(await editor.evaluate(el=>el===(window as any).keptEditor&&el===document.activeElement),'continuous resize preserves editor and focus');
     assert.equal(await editor.innerText(),"保留当前草稿");
+    await assertWelcomeAnchor();
     continuousViewportEvidence.push({height,input,send});previous={height,top:input.y};
    }
   }
   const viewportEvidence=[];
   for(const [height,top] of desktop?[[844,0]]:[[420,0],[360,54],[280,120],[420,0],[844,0]]){
    await page.evaluate(([h,t])=>(window as any).setViewport(h,t),[height,top]);await page.waitForTimeout(150);
+   await assertWelcomeAnchor();
    const send=page.locator(".opencraft-composer-submit");const visible=(await send.boundingBox())!;
    assert(visible.y>=top&&visible.y+visible.height<=top+height+1,`${label}: send clipped ${JSON.stringify({height,top,visible})}`);
    assert.equal(await editor.innerText(),"保留当前草稿");assert(await editor.evaluate(el=>el===(window as any).keptEditor));viewportEvidence.push({height,top,visible});
